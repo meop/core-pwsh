@@ -14,10 +14,6 @@ function Invoke-SafeAppendToModulePath ($p) {
 
 Invoke-SafeAppendToModulePath "$PSScriptRoot/modules"
 
-function Get-ProfileAssetsDir {
-    $global:DEV_SCRIPTS_PROFILE_DIR
-}
-
 $f = "$PSScriptRoot/assets.ps1"
 if (Test-Path $f) { . $f }
 

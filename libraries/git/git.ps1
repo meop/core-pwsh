@@ -55,8 +55,8 @@ function Invoke-GitRebaseWithRetries (
 
                 $ans = Read-Host
                 $runComplete =
-                    if ($ans -like "*n*") { $false }
-                    else { $true }
+                    if ($ans -like '*n*') { $true }
+                    else { $false }
 
                 break
             }
