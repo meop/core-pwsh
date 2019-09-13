@@ -1,6 +1,10 @@
 #Requires -RunAsAdministrator
-# why admin?: Chocolatey, IISReset, etc
-# note: on linux the 'requires' does not work, but commands can just use sudo as needed
+
+# since the Requires statement does not work on Unix
+if (($PSVersionTable.Platform -eq 'Unix') -and
+    ((id -u) -ne 0)) {
+    throw "These scripts must be run as root.."
+}
 
 function Invoke-SafeGetCommandPath ($n, $p) {
     $c = Get-Command -Name $n -ErrorAction SilentlyContinue
