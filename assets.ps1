@@ -2,7 +2,7 @@ function Import-AssetCsv (
     [Parameter(Mandatory = $true)] [string] $Path
 ) {
     $path = ConvertTo-CrossPlatformPathFormat `
-        (if ($Path.EndsWith('.csv')) { $Path } else { "$Path.csv" })
+        $(if ($Path.EndsWith('.csv')) { $Path } else { "$Path.csv" })
 
     if (Test-Path $path) {
         Import-Csv $path
@@ -15,7 +15,7 @@ function Import-AssetList (
     [Parameter(Mandatory = $true)] [string] $Path
 ) {
     $path = ConvertTo-CrossPlatformPathFormat `
-        (if ($Path.EndsWith('.txt')) { $Path } else { "$Path.txt" })
+        $(if ($Path.EndsWith('.txt')) { $Path } else { "$Path.txt" })
 
     if (Test-Path $path) {
         $items = Get-Content $path | Where-Object {
