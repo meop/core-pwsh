@@ -45,7 +45,10 @@ function Invoke-RcloneGroup (
     $commands = @()
 
     foreach ($backup in $backupGroup) {
-        $path = $ExecutionContext.InvokeCommand.ExpandString($backup.Path)
+        $path =
+            $ExecutionContext.InvokeCommand.ExpandString(
+                $backup.Path
+            )
 
         $flags = ''
         if ($CopyLinks.IsPresent) { $flags += ' --copy-links' }
@@ -57,8 +60,8 @@ function Invoke-RcloneGroup (
 
         $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(
-            $backupGroupRemote.RemotePath
-        )
+                $backupGroupRemote.RemotePath
+            )
 
         $remotePathPostfix = ConvertTo-ExpandedDirectoryPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(
