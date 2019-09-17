@@ -61,10 +61,12 @@ function Invoke-RcloneGroup (
         )
 
         $remotePathPostfix = ConvertTo-ExpandedDirectoryPathFormat `
-            $ExecutionContext.InvokeCommand.ExpandString($(
-                if ($backup.NewPath) { $backup.NewPath }
-                else { $path }
-            ))
+            $ExecutionContext.InvokeCommand.ExpandString(
+                $(
+                    if ($backup.NewPath) { $backup.NewPath }
+                    else { $path }
+                )
+            )
 
         $remotePath = "$remotePathPrefix/$(Edit-TrimForwardSlashes $remotePathPostfix)"
 
@@ -85,7 +87,7 @@ function Invoke-RcloneGroup (
                 -Config $Config
         } else {
             Get-RcloneCommand `
-                -Operation (
+                -Operation $(
                     if (Test-PathIsOfType $pathToCheck Leaf) {
                         [RcloneOperation]::copyto
                     } else {
