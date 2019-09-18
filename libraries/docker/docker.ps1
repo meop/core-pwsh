@@ -1,9 +1,10 @@
 enum DockerOption {
+    execBash
     isRunning
     runDetach
     runInteractive
+    runInteractiveTty
     stop
-    bashInteractive
     pull
 }
 
@@ -18,7 +19,7 @@ function Invoke-Docker (
     $containerImageTag = $containerImage.ImageTag
     $containerImageArgs = $containerImage.ImageArgs
 
-    function Bash (
+    function Exec (
         [string[]] $Arguments
     ) {
         if (-not $Arguments) {
@@ -43,6 +44,12 @@ function Invoke-Docker (
     }
 
     switch ($Option) {
+        ([DockerOption]::execBash) {
+            Invoke-LineAsCommandOnConsole `
+                -Line (Exec) `
+                -WhatIf:$WhatIf `
+                -Config $Config
+        }
         ([DockerOption]::isRunning) {
             $ans = Invoke-LineAsCommandOnConsole `
                 -Line "docker ps --filter `"name=$containerName`"" `
@@ -61,6 +68,12 @@ function Invoke-Docker (
         }
         ([DockerOption]::runInteractive) {
             Invoke-LineAsCommandOnConsole `
+                -Line (Run '--interactive') `
+                -WhatIf:$WhatIf `
+                -Config $Config
+        }
+        ([DockerOption]::runInteractiveTty) {
+            Invoke-LineAsCommandOnConsole `
                 -Line (Run '--interactive', '--tty') `
                 -WhatIf:$WhatIf `
                 -Config $Config
@@ -68,18 +81,6 @@ function Invoke-Docker (
         ([DockerOption]::stop) {
             Invoke-LineAsCommandOnConsole `
                 -Line "docker stop $containerName" `
-                -WhatIf:$WhatIf `
-                -Config $Config
-        }
-        ([DockerOption]::bashInteractive) {
-            Invoke-LineAsCommandOnConsole `
-                -Line (Bash) `
-                -WhatIf:$WhatIf `
-                -Config $Config
-        }
-        ([DockerOption]::pull) {
-            Invoke-LineAsCommandOnConsole `
-                -Line "docker pull $containerImageTag" `
                 -WhatIf:$WhatIf `
                 -Config $Config
         }
