@@ -5,7 +5,6 @@ enum DockerOption {
     runInteractive
     runInteractiveTty
     stop
-    pull
 }
 
 function Invoke-Docker (
@@ -56,8 +55,7 @@ function Invoke-Docker (
                 -WhatIf:$WhatIf `
                 -Config $Config
             if (-not $WhatIf.IsPresent) {
-                $null -ne $ans |
-                    Select-String $containerName
+                $null -ne ($ans | Select-String $containerName)
             }
         }
         ([DockerOption]::runDetach) {
