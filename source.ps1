@@ -1,4 +1,4 @@
-if ($PSVersionTable.PSEdition -ne 'Core') {
+if ($PSEdition -ne 'Core') {
     Write-Output 'Please install and use PS Core: https://github.com/PowerShell/PowerShell'
     Write-Output 'You are using:'
     Write-Output $PSVersionTable
@@ -6,7 +6,7 @@ if ($PSVersionTable.PSEdition -ne 'Core') {
 }
 
 function Invoke-SafeAppendToModulePath ($p) {
-    $splitter = if ($PSVersionTable.Platform -eq 'Unix') { ':' } else { ';' }
+    $splitter = if ($IsWindows) { ';' } else { ':' }
     if (Test-Path $p) {
         $env:PSModulePath += "$splitter$p"
     }
