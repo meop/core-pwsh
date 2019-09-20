@@ -1,9 +1,9 @@
 #Requires -RunAsAdministrator
 
 # since the Requires statement does not work on Unix
-if (($PSVersionTable.Platform -eq 'Unix') -and
+if (-not $IsWindows -and
     ((id -u) -ne 0)) {
-    throw "These scripts must be run as root.."
+    throw "These scripts must be run as root!"
 }
 
 function Invoke-SafeGetCommandPath ($n, $p) {
@@ -48,7 +48,8 @@ function Invoke-SafeSetItem ($i, $v) {
     }
 }
 
-Invoke-SafeSetItem 'env:HOSTNAME' "$(hostname)"
+Invoke-SafeSetItem 'env:HOSTNAME' $(hostname).ToLowerInvariant()
+Invoke-SafeSetItem 'env:USERNAME' $(if ($IsWindows) { $env:USERNAME } else { $env:USER }).ToLowerInvariant()
 
 $f = "$PSScriptRoot/prompt.ps1"
 if (Test-Path $f) { . $f }
