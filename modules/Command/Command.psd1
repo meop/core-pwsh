@@ -8,5 +8,6 @@
     )
     NestedModules        = @(
         , 'Command.psm1'
+        , 'Sudo.psm1'
     )
 }

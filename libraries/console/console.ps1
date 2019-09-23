@@ -30,7 +30,7 @@ function Get-FgColor (
 function Get-ConsoleCommand (
     [Parameter(Mandatory = $true)] [string] $Line
     , [Parameter(Mandatory = $false)] [string] $WorkingDir
-    , [Parameter(Mandatory = $false)] [bool] $SkipPrint
+    , [Parameter(Mandatory = $false)] [switch] $SkipPrint
     , [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::Cmd
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -41,6 +41,21 @@ function Get-ConsoleCommand (
     $command.FgColor = Get-FgColor $ConsoleType $Config
     $command.BgColor = $null
     $command
+}
+
+function Get-ConsoleCommandAsRoot (
+    [Parameter(Mandatory = $true)] [string] $Line
+    , [Parameter(Mandatory = $false)] [string] $WorkingDir
+    , [Parameter(Mandatory = $false)] [switch] $SkipPrint
+    , [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::Cmd
+    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
+) {
+    Get-ConsoleCommand `
+        -Line (Format-AsSudo $Line) `
+        -WorkingDir $WorkingDir `
+        -SkipPrint:$SkipPrint `
+        -ConsoleType $ConsoleType `
+        -Config $Config
 }
 
 function Invoke-LineAsCommandOnConsole (
@@ -57,6 +72,19 @@ function Invoke-LineAsCommandOnConsole (
     Invoke-CommandsConcurrent `
         -Commands $command `
         -WhatIf:$WhatIf
+}
+
+function Invoke-LineAsCommandOnConsoleAsRoot (
+    [Parameter(Mandatory = $true)] [string] $Line
+    , [Parameter(Mandatory = $false)] [string] $WorkingDir
+    , [Parameter(Mandatory = $false)] [switch] $WhatIf
+    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
+) {
+    Invoke-LineAsCommandOnConsole `
+        -Line (Format-AsSudo $Line) `
+        -WorkingDir $WorkingDir `
+        -WhatIf:$WhatIf `
+        -Config $Config
 }
 
 # write-host

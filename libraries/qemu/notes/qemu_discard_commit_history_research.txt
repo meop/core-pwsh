@@ -1,0 +1,1074 @@
+Discard Support Summary:
+
+It is supported for RAW and QCOW2, NBD and RBD, IDE and SCSI
+    It is supported:
+        for other variants of SCSI: ISCSI, VIRTIO-SCSI
+        SHEEPDOG
+        VDI
+        GlusterFS
+        xen-disk
+        macio
+
+It is supported for FILE and BLOCK protocols
+
+It is supported in QCOW2, QED
+    Write zeros is supported in VDI, VHDX, VPC
+
+
+It is turned on by default at the block level (the higher levels get to use it or not)
+    "fake it as enabled in the guest"
+
+It is supported by main qemu -drive param and qemu-img, qemu-io, qemu-mirror
+
+
+Questions:
+
+what is the guest-fstrim command? when is it called? (commands-posix.c, commands-win32.c)
+    qapi-schema (i think this is for issuing commands to a running qemu, and its host can run fstrim)
+discard seems to be enabled at block level through hdev_co_discard, BLKDISCARD..
+    which, in addition to fstrim.. can send a command to the disk..
+    check callers in code.. when would it be used instead of the "file in filesystem" based "punch holes" style
+is discard enabled in AHCI (SATA).. probably.. check in code
+    look at macio pmac_dma_trim func.. is it in other ide variants?
+is discard enabled in NVME?
+    if so, why does windows error out
+    if not, is it planned?
+
+
+Notes:
+
+blk is actually worse, b/c it is sector based.. even though it was used in place of bdrv in one commit
+
+there are only a couple methods for block devices to check for discard support (but the network storage devices may vary)
+    bdrv_discard
+    bdrv_aio_discard
+        bdrv_co_discard (dead)
+    blk_aio_discard
+
+    blk_co_write_zeroes
+
+    bdrv_co_pdiscard (method, newest, byte based)
+
+    blk_aio_pdiscard (still used in xen_disk, for example)
+    blk_aio_pwrite_zeroes
+
+    BDRV_OPT_DISCARD (flag)
+
+for ide
+    ide_issue_trim
+
+in general
+    discard granularity
+
+---
+
+Commit bb8bf76f
+by Christoph Hellwig, 12/16/2010 10:36 AM
+committed by Kevin Wolf, 12/17/2010 07:11 AM
+parent a2d3f695
+child ea3bd56f
+
+block: add discard support
+
+Add a new bdrv_discard method to free blocks in a mapping image, and a new
+drive property to set the granularity for these discard.  If no discard
+granularity support is set discard support is disabled.
+
+block.h
+    int bdrv_discard(BlockDriverState *bs, int64_t sector_num, int nb_sectors);
+
+block.c
+    int bdrv_discard(BlockDriverState *bs, int64_t sector_num, int nb_sectors)
+    {
+        if (!bs->drv) {
+            return -ENOMEDIUM;
+        }
+        if (!bs->drv->bdrv_discard) {
+            return 0;
+        }
+        return bs->drv->bdrv_discard(bs, sector_num, nb_sectors);
+    }
+
+block_int.h
+    int (*bdrv_discard)(BlockDriverState *bs, int64_t sector_num,
+                    int nb_sectors);
+
+    uint32_t discard_granularity;
+
+    DEFINE_PROP_UINT32("discard_granularity", _state, \
+                        _conf.discard_granularity, 0)
+
+raw.c
+    static int raw_discard(BlockDriverState *bs, int64_t sector_num, int nb_sectors)
+    {
+        return bdrv_discard(bs->file, sector_num, nb_sectors);
+    }
+
+    .bdrv_discard       = raw_discard,
+
+
+---
+
+Support discards via the WRITE SAME command with the unmap bit set, and
+tell the initiator about the support for it via the block limit and the
+new thin provisioning EVPD pages.  Also fix the comment which incorrectly
+describedthe block limits EVPD page.
+
+scsi-defs.h
+    #define WRITE_SAME_16         0x93
+
+scsi-disk.c
+
+    unsigned int unmap_sectors =
+            s->qdev.conf.discard_granularity / s->qdev.blocksize;
+
+
+
+        /* optimal unmap granularity */
+        outbuf[28] = (unmap_sectors >> 24) & 0xff;
+        outbuf[29] = (unmap_sectors >> 16) & 0xff;
+        outbuf[30] = (unmap_sectors >> 8) & 0xff;
+        outbuf[31] = unmap_sectors & 0xff;
+        break;
+    }
+    case 0xb2: /* thin provisioning */
+    {
+        outbuf[3] = buflen = 8;
+        outbuf[4] = 0;
+        outbuf[5] = 0x40; /* write same with unmap supported */
+        outbuf[6] = 0;
+        outbuf[7] = 0;
+        break;
+
+
+    /* set TPE bit if the format supports discard */
+    if (s->qdev.conf.discard_granularity) {
+        outbuf[14] = 0x80;
+    }
+
+    case WRITE_SAME_16:
+        len = r->req.cmd.xfer / d->blocksize;
+
+        DPRINTF("WRITE SAME(16) (sector %" PRId64 ", count %d)\n",
+                r->req.cmd.lba, len);
+
+        if (r->req.cmd.lba > s->max_lba) {
+            goto illegal_lba;
+        }
+
+        /*
+         * We only support WRITE SAME with the unmap bit set for now.
+         */
+        if (!(buf[1] & 0x8)) {
+            goto fail;
+        }
+
+        rc = bdrv_discard(s->bs, r->req.cmd.lba * s->cluster_size,
+                          len * s->cluster_size);
+        if (rc < 0) {
+            /* XXX: better error code ?*/
+            goto fail;
+        }
+
+---
+
+qemu-io.c
+
+    static void
+    discard_help(void)
+    {
+        printf(
+    "\n"
+    " discards a range of bytes from the given offset\n"
+    "\n"
+    " Example:\n"
+    " 'discard 512 1k' - discards 1 kilobyte from 512 bytes into the file\n"
+    "\n"
+    " Discards a segment of the currently open file.\n"
+    " -C, -- report statistics in a machine parsable format\n"
+    " -q, -- quite mode, do not show I/O statistics\n"
+    "\n");
+    }
+
+    static int discard_f(int argc, char **argv);
+
+    static const cmdinfo_t discard_cmd = {
+        .name		= "discard",
+        .altname	= "d",
+        .cfunc		= discard_f,
+        .argmin		= 2,
+        .argmax		= -1,
+        .args		= "[-Cq] off len",
+        .oneline	= "discards a number of bytes at a specified offset",
+        .help		= discard_help,
+    };
+
+    static int
+    discard_f(int argc, char **argv)
+    {
+        struct timeval t1, t2;
+        int Cflag = 0, qflag = 0;
+        int c, ret;
+        int64_t offset;
+        int count;
+
+        while ((c = getopt(argc, argv, "Cq")) != EOF) {
+            switch (c) {
+            case 'C':
+                Cflag = 1;
+                break;
+            case 'q':
+                qflag = 1;
+                break;
+            default:
+                return command_usage(&discard_cmd);
+            }
+        }
+
+        if (optind != argc - 2) {
+            return command_usage(&discard_cmd);
+        }
+
+        offset = cvtnum(argv[optind]);
+        if (offset < 0) {
+            printf("non-numeric length argument -- %s\n", argv[optind]);
+            return 0;
+        }
+
+        optind++;
+        count = cvtnum(argv[optind]);
+        if (count < 0) {
+            printf("non-numeric length argument -- %s\n", argv[optind]);
+            return 0;
+        }
+
+        gettimeofday(&t1, NULL);
+        ret = bdrv_discard(bs, offset, count);
+        gettimeofday(&t2, NULL);
+
+        if (ret < 0) {
+            printf("discard failed: %s\n", strerror(-ret));
+            goto out;
+        }
+
+        /* Finally, report back -- -C gives a parsable format */
+        if (!qflag) {
+            t2 = tsub(t2, t1);
+            print_report("discard", &t2, offset, count, count, 1, Cflag);
+        }
+
+    out:
+        return 0;
+    }
+
+---
+
+Commit dce512de
+by Christoph Hellwig, 12/17/2010 02:41 AM
+committed by Kevin Wolf, 12/17/2010 07:11 AM
+parent edff5db1
+children 2991181a, 5dbbda34, 6bff8656
+
+
+Add support to discard blocks in a raw image residing on an XFS filesystem
+by calling the XFS_IOC_UNRESVSP64 ioctl to punch holes.  Support for other
+hole punching mechanisms can be added when they become available.
+
+
+
+----
+
+so it seems like
+discard calls:
+
+-> emulated device
+    scsi-disk
+
+?? -> qemu-io (calls discard)
+
+-> block (base class for raw and qcow2, etc)
+    block
+
+-> format (raw)
+
+?? -> protocol (file)
+
+-> filesystem driver (raw)
+    raw-posix -> xfs
+
+
+---
+
+immediately after, qcow2 support was added
+qemu-io was fixed
+virtio-serial discarded data (not sure if same discard)
+
+
+---
+
+Commit d353fb72
+by Christoph Hellwig, 05/19/2011 01:58 AM
+committed by Kevin Wolf, 06/15/2011 05:36 AM
+parent 60c07d93
+child 1f8bedba
+
+ide added TRIM support
+
+ide: add TRIM support
+
+Add support for TRIM sub function of the data set management command,
+and wire it up to the qemu discard infrastructure.
+
+
+---
+
+nbd: support NBD_SET_FLAGS ioctl
+
+The nbd kernel module cannot enable DISCARD requests unless it is
+informed about it.  The flags field in the header is used for this,
+and this patch adds support for it.
+
+
+---
+Commit 4265d620
+by Paolo Bonzini, 10/17/2011 03:32 AM
+committed by Kevin Wolf, 10/21/2011 08:34 AM
+parent 8f440cda
+child 848c66e8
+
+block: add bdrv_co_discard and bdrv_aio_discard support
+
+for block and raw, as before
+
+
+--
+switched it all to asyc, coroutines..
+---
+
+added support for block/vdi
+
+
+---
+Commit ad54ae80
+by Paolo Bonzini, 11/30/2011 12:12 AM
+committed by Kevin Wolf, 12/15/2011 03:40 AM
+parent 8494a397
+child ddf83d01
+
+block: bdrv_aio_* do not return NULL
+
+Initially done with the following semantic patch:
+
+@ rule1 @
+expression E;
+statement S;
+@@
+  E =
+(
+   bdrv_aio_readv
+|  bdrv_aio_writev
+|  bdrv_aio_flush
+|  bdrv_aio_discard
+|  bdrv_aio_ioctl
+)
+     (...);
+(
+- if (E == NULL) { ... }
+|
+- if (E)
+    { <... S ...> }
+)
+
+which however missed the occurrence in block/blkverify.c
+(as it should have done), and left behind some unused
+variables.
+
+---
+
+Commit 787f3133
+by Josh Durgin, 04/30/2012 11:16 PM
+committed by Kevin Wolf, 05/02/2012 09:41 AM
+parent 1f8bcac0
+child 58a331ba
+
+rbd: add discard support
+
+Change the write flag to an operation type in RBDAIOCB, and make the
+buffer optional since discard doesn't use it.
+
+Discard is first included in librbd 0.1.2 (which is in Ceph 0.46).
+If librbd is too old, leave out qemu_rbd_aio_discard entirely,
+so the old behavior is preserved.
+
+rbd.c
+
+    #ifdef LIBRBD_SUPPORTS_DISCARD
+    static BlockDriverAIOCB* qemu_rbd_aio_discard(BlockDriverState *bs,
+                                                int64_t sector_num,
+                                                int nb_sectors,
+                                                BlockDriverCompletionFunc *cb,
+                                                void *opaque)
+    {
+        return rbd_start_aio(bs, sector_num, NULL, nb_sectors, cb, opaque,
+                            RBD_AIO_DISCARD);
+    }
+    #endif
+
+#ifdef LIBRBD_SUPPORTS_DISCARD
+    .bdrv_aio_discard       = qemu_rbd_aio_discard,
+#endif
+
+
+---
+
+iscsi.c
+
+    .bdrv_aio_discard = iscsi_aio_discard,
+
+---
+
+qemu-ga: add guest-fstrim command
+
+FITRIM is a mounted filesystem feature to discard (or "trim") blocks which
+are not in use by the filesystem. This is useful for solid-state drives
+(SSDs) and thinly-provisioned storage.  Provide access to the feature
+from the host so that filesystems can be trimmed periodically or before
+migration.
+
+Here is an example using scsi_debug:
+
+    # modprobe scsi_debug lbpu=1 lbpws=1
+    # sg_vpd -p0xb2 /dev/sdb
+    Logical block provisioning VPD page (SBC):
+      Unmap command supported (LBPU): 1
+      Write same (16) with unmap bit supported (LBWS): 1
+      Write same (10) with unmap bit supported (LBWS10): 0
+    # mke2fs /dev/sdb
+    # cat /sys/bus/pseudo/drivers/scsi_debug/map
+    1-616,16257-16383
+    # mount /dev/sdb /run/media/pbonzini/test
+    # dd if=/dev/zero of=/run/media/pbonzini/test/file
+    # cat map
+    1-616,645-1588,1599-4026,4029-16383
+    # rm /run/media/pbonzini/test/file
+    # ./qemu-ga /dev/fd/0
+    {"execute":"guest-fstrim"}
+    {"return": {}}
+    # cat map
+    1-612
+
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+Reviewed-by: Luiz Capitulino <lcapitulino@redhat.com>
+Reviewed-by: Michal Privoznik <mprivozn@redhat.com>
+Signed-off-by: Michael Roth <mdroth@linux.vnet.ibm.com>
+
+---
+
+scsi-disk: make discard asynchronous
+
+By making discard asynchronous, we can reuse all the error handling
+code that is used for other commands.
+
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+
+---
+
+raw-posix: support discard on more filesystems
+
+Linux 2.6.38 introduced the filesystem independent interface to
+deallocate part of a file. As of Linux 3.7, btrfs, ext4, ocfs2,
+tmpfs and xfs support it.
+
+Even though the system calls here are in practice issued on Linux,
+the code is structured to allow plugging in alternatives for other Unix
+variants.  EOPNOTSUPP is used unconditionally in this patch, but it is
+supported in both OpenBSD and Mac OS X since forever (see for example
+http://lists.debian.org/debian-glibc/2006/02/msg00337.html).
+
+---
+
+Commit fcd9d455
+by Paolo Bonzini, 01/14/2013 07:26 AM
+committed by Stefan Hajnoczi, 01/15/2013 01:03 AM
+parent c85191e5
+child 8238010b
+
+raw: support discard on block devices
+
+Block devices use a ioctl instead of fallocate, so add a separate
+implementation.
+
+
+raw-posix
+
+static coroutine_fn int hdev_co_discard(BlockDriverState *bs,
+    int64_t sector_num, int nb_sectors)
+{
+    BDRVRawState *s = bs->opaque;
+    int ret;
+
+    if (s->has_discard == 0) {
+        return 0;
+    }
+    ret = fd_open(bs);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = -EOPNOTSUPP;
+#ifdef BLKDISCARD
+    do {
+        uint64_t range[2] = { sector_num * 512, (uint64_t)nb_sectors * 512 };
+        if (ioctl(s->fd, BLKDISCARD, range) == 0) {
+            return 0;
+        }
+    } while (errno == EINTR);
+
+    ret = -errno;
+#endif
+    if (ret == -ENODEV || ret == -ENOSYS || ret == -EOPNOTSUPP ||
+        ret == -ENOTTY) {
+        s->has_discard = 0;
+        ret = 0;
+    }
+    return ret;
+
+}
+
+.bdrv_co_discard    = hdev_co_discard,
+
+"When you use blkdiscard, the SSD (assuming a SATA SSD) will receive an ATA TRIM command
+
+
+---
+
+blockdev: add discard suboption to -drive
+
+Add support for BDRV_O_UNMAP from the QEMU command-line.
+
+---
+
+qemu-nbd: add --discard option
+
+Similar to --cache and --aio, this option mimics the discard suboption
+of "-drive".
+
+---
+
+blockdev: enable discard by default
+
+Because discard is now a host parameter, we can always fake it as enabled
+in the guest.  This is an extension of the current choice to ignore
+"not supported" errors from the host when discard_granularity is set
+to nonzero.
+
+The default granularity is set to the logical block size or 4k, whichever
+is largest, because cluster sizes below 4k are rarely used and 4K is a
+typical block size for files.
+
+
+---
+
+
+add skeleton for BSD licensed "raw" BlockDriver
+
+On 08/05/13 15:03, Paolo Bonzini wrote:
+>
+>
+> ----- Original Message -----
+>> From: "Laszlo Ersek" <lersek@redhat.com>
+>> To: "Paolo Bonzini" <pbonzini@redhat.com>
+>> Sent: Monday, August 5, 2013 2:43:46 PM
+>> Subject: Re: [PATCH 1/2] raw: add license header
+>>
+>> On 08/02/13 00:27, Paolo Bonzini wrote:
+>>> On 08/01/2013 10:13 AM, Christoph Hellwig wrote:
+>>>> On Wed, Jul 31, 2013 at 08:19:51AM +0200, Paolo Bonzini wrote:
+>>>>> Most of the block layer is under the BSD license, thus it is
+>>>>> reasonable to license block/raw.c the same way.  CCed people should
+>>>>> ACK by replying with a Signed-off-by line.
+>>>>
+>>>> The coded was intended to be GPLv2.
+>>>
+>>> Laszlo, would you be willing to do clean-room reverse engineering?
+>>>
+>>> (No rants, please. :))
+>>
+>> What's the scope exactly?
+>
+> It's quite small, it's a file full of forwarders like
+>
+> static void raw_foo(BlockDriverState *bs)
+> {
+>     return bdrv_foo(bs->file);
+> }
+>
+> It's 170 lines of code, all as boring as this.  I only picked you
+> because I'm quite certain you have never seen the file (and the answer
+> confirmed it).
+>
+> Basically:
+>
+> 1) BlockDriver is a struct in which these function members are
+> interesting:
+>
+>     .bdrv_reopen_prepare
+>     .bdrv_co_readv
+>     .bdrv_co_writev
+>     .bdrv_co_is_allocated
+>     .bdrv_co_write_zeroes
+>     .bdrv_co_discard
+>     .bdrv_getlength
+>     .bdrv_get_info
+>     .bdrv_truncate
+>     .bdrv_is_inserted
+>     .bdrv_media_changed
+>     .bdrv_eject
+>     .bdrv_lock_medium
+>     .bdrv_ioctl
+>     .bdrv_aio_ioctl
+>     .bdrv_has_zero_init
+>
+> They should be implemented as simple forwarders (see above).
+> There are 16 functions listed here, you can easily see how this
+> already accounts for 100+ SLOC roughly...
+>
+> The implementations of bdrv_co_readv and bdrv_co_writev should also
+> call BLKDBG_EVENT on bs->file too, before forwarding to bs->file.  The
+> events to be generated are BLKDBG_READ_AIO and BLKDBG_WRITE_AIO.
+>
+> 2) This is also a simple forwarder function:
+>
+>     .bdrv_create
+>
+> but there is no BlockDriverState argument so the forwarded-to function
+> does not have a bs->file argument either.  The forwarded-to function
+> is bdrv_create_file.
+>
+> 3) These members are special
+>
+>     .format_name   is the string "raw"
+>     .bdrv_open     raw_open should set bs->sg to bs->file->sg and return 0
+>     .bdrv_close    raw_close should do nothing
+>     .bdrv_probe    raw_probe should just return 1.
+>
+> 4) There is another member, .create_options, which is an array of
+> QEMUOptionParameter structs, terminated by an all-zero item.  The only
+> option you need is for the virtual disk size.  You will find something
+> to copy from in other block drivers, for example block/qcow2.c.
+>
+> 5) Formats are registered with bdrv_register (takes a BlockDriver*).
+> You also need to pass the caller of bdrv_register to block_init.
+>
+> 6) I'm not sure how to organize the patch series, so I'll leave this to
+> your creativity.  I guess in this case move/copy detection of git should
+> be disabled.  I would definitely include this spec in the commit
+> message as a proof of clean-room reverse engineering.
+>
+> 7) Remember a BSD header like the one in block.c.
+>
+> Paolo
+
+This patch implements the email up to the paragraph ending with "100+ SLOC
+roughly". The skeleton is generated from the list there, with a simple
+shell loop using "sed" and the raw_foo() template.
+
+The BSD license block is copied (and reflowed) from
+"util/qemu-progress.c".
+
+Signed-off-by: Laszlo Ersek <lersek@redhat.com>
+Signed-off-by: Kevin Wolf <kwolf@redhat.com>
+
+
+
+
+---
+
+
+these drivers support discard
+
+block.c
+
+    if (!bs->drv->bdrv_co_discard && !bs->drv->bdrv_aio_discard) {
+        return 0;
+    }
+
+
+---
+
+Commit 97a2ae34
+by Paolo Bonzini, 11/22/2013 04:39 AM
+committed by Stefan Hajnoczi, 12/03/2013 06:26 AM
+parent 95de6d70
+child f2521c90
+
+XFS separately and POSIX in general get support for write-zeros
+    (similar to discard)
+
+
+---
+
+scsi-disk: add UNMAP limits to block limits VPD page
+
+Linux prefers WRITE SAME to UNMAP if the limits are zero, and WRITE
+SAME does not discard anything unless the device can guarantee that
+the resulting block is zero.
+
+Setting the maximum unmap block and descriptor counts to non-zero
+makes Linux choose UNMAP and fixes thin provisioning on glusterfs.
+
+While the maximum unmap block count can have some effect on performance,
+the (suggested) maximum number of descriptors is not particularly
+important so I didn't add a customization option.  SCSI drivers are
+used to online firmware updates so I'm not yet adding versioning support
+for SCSI, but we're probably getting close to the point when it's worth
+thinking about it.
+
+
+---
+
+virtio-blk-pci.discard_granularity=uint32
+
+---
+
+
+bdrv_aio_discard became blk_aio_discard (this one is apparently better)
+
+
+ide: Complete conversion from BlockDriverState to BlockBackend
+
+Add a BlockBackend member to TrimAIOCB, so ide_issue_trim_cb() can use
+blk_aio_discard() instead of bdrv_aio_discard().
+
+---
+
+block: Lift more functions into BlockBackend
+
+There are already some blk_aio_* functions, so we might as well have
+blk_co_* functions (as far as we need them). This patch adds
+blk_co_flush(), blk_co_discard(), and also blk_invalidate_cache() (which
+is not a blk_co_* function but is needed nonetheless).
+
+---
+
+
+block: move I/O request processing to block/io.c
+
+The block.c file has grown to over 6000 lines.  It is time to split this
+file so there are fewer conflicts and the code is easier to maintain.
+
+Extract I/O request processing code:
+ * Read
+ * Write
+ * Zero writes and making the image empty
+ * Flush
+ * Discard
+ * ioctl
+ * Tracked requests and queuing
+ * Throttling and copy-on-read
+ * Block status and allocated functions
+ * Refreshing block limits
+ * Reading/writing vmstate
+ * qemu_blockalign() and friends
+
+
+---
+
+
+MAINTAINERS: make block I/O path Stefan Hajnoczi's responsibility
+
+The block I/O path includes the asynchronous I/O machinery and
+read/write/flush/discard processing.  It somewhat arbitrarily also
+includes block migration, which I've found myself reviewing patches for
+over the years.
+
+Signed-off-by: Stefan Hajnoczi <stefanha@redhat.com>
+Signed-off-by: Kevin Wolf <kwolf@redhat.com>
+
+
+---
+
+Merge remote-tracking branch 'remotes/kevin/tags/for-upstream' into staging
+
+Block patches
+
+# gpg: Signature made Thu Apr 30 19:51:16 2015 BST using RSA key ID C88F2FD6
+# gpg: Good signature from "Kevin Wolf <kwolf@redhat.com>"
+
+* remotes/kevin/tags/for-upstream:
+  Enable NVMe start controller for Windows guest.
+  MAINTAINERS: Add qemu-block list where missing
+  MAINTAINERS: make block layer core Kevin Wolf's responsibility
+  MAINTAINERS: make image fuzzer Stefan Hajnoczi's responsibility
+  MAINTAINERS: make block I/O path Stefan Hajnoczi's responsibility
+  MAINTAINERS: split out image formats
+  MAINTAINERS: make virtio-blk Stefan Hajnoczi's responsibility
+
+--
+
+macio: re-add TRIM support
+
+Commit bd4214fc dropped TRIM support by mistake. Given it is still
+advertised to the host when using a drive with discard=on, this cause
+the IDE bus to hang when the host issues a TRIM command.
+
+This patch fixes that by re-adding the TRIM code, ported to the new
+new DMA implementation.
+
+macio.c in hw/ide
+
+    static void pmac_dma_trim(BlockBackend *blk,
+                            int64_t offset, int bytes,
+                            void (*cb)(void *opaque, int ret), void *opaque)
+    {
+        DBDMA_io *io = opaque;
+        MACIOIDEState *m = io->opaque;
+        IDEState *s = idebus_active_if(&m->bus);
+        dma_addr_t dma_addr, dma_len;
+        void *mem;
+
+        qemu_iovec_destroy(&io->iov);
+        qemu_iovec_init(&io->iov, io->len / MACIO_PAGE_SIZE + 1);
+
+        dma_addr = io->addr;
+        dma_len = io->len;
+        mem = dma_memory_map(&address_space_memory, dma_addr, &dma_len,
+                            DMA_DIRECTION_TO_DEVICE);
+
+        qemu_iovec_add(&io->iov, mem, io->len);
+        s->io_buffer_size -= io->len;
+        s->io_buffer_index += io->len;
+        io->len = 0;
+
+        m->aiocb = ide_issue_trim(blk, (offset >> 9), &io->iov, (bytes >> 9),
+                                cb, io);
+    }
+
+
+---
+
+block: Track discard requests
+
+Both bdrv_discard and bdrv_aio_discard will call into bdrv_co_discard,
+so add tracked_request_begin/end calls around the loop.
+
+
+---
+
+block: Kill unused sector-based blk_* functions
+
+Now that there are no remaining clients, we can drop the
+sector-based blk_read(), blk_write(), blk_aio_readv(), and
+blk_aio_writev().  Sadly, there are still remaining
+sector-based interfaces, such as blk_*discard(), or
+blk_write_compressed(); those will have to wait for another
+day.
+
+---
+
+Commit 61ead113
+by Peter Maydell, 07/21/2016 03:00 AM
+parents 9358450e, 02aefe43
+children 09704e6d, b8d0a980
+
+Merge remote-tracking branch 'remotes/stefanha/tags/block-pull-request' into staging
+
+Pull request
+
+v2:
+ * Resolved merge conflict with block/iscsi.c [Peter]
+
+# gpg: Signature made Wed 20 Jul 2016 17:20:52 BST
+# gpg:                using RSA key 0x9CA4ABB381AB73C8
+# gpg: Good signature from "Stefan Hajnoczi <stefanha@redhat.com>"
+# gpg:                 aka "Stefan Hajnoczi <stefanha@gmail.com>"
+# Primary key fingerprint: 8695 A8BF D3F9 7CDA AC35  775A 9CA4 ABB3 81AB 73C8
+
+* remotes/stefanha/tags/block-pull-request: (25 commits)
+  raw_bsd: Convert to byte-based interface
+  nbd: Convert to byte-based interface
+  block: Kill .bdrv_co_discard()
+  sheepdog: Switch .bdrv_co_discard() to byte-based
+  raw_bsd: Switch .bdrv_co_discard() to byte-based
+  qcow2: Switch .bdrv_co_discard() to byte-based
+  nbd: Switch .bdrv_co_discard() to byte-based
+  iscsi: Switch .bdrv_co_discard() to byte-based
+  gluster: Switch .bdrv_co_discard() to byte-based
+  blkreplay: Switch .bdrv_co_discard() to byte-based
+  block: Add .bdrv_co_pdiscard() driver callback
+  block: Convert .bdrv_aio_discard() to byte-based
+  rbd: Switch rbd_start_aio() to byte-based
+  raw-posix: Switch paio_submit() to byte-based
+  block: Convert BB interface to byte-based discards
+  block: Convert bdrv_aio_discard() to byte-based
+  block: Switch BlockRequest to byte-based
+  block: Convert bdrv_discard() to byte-based
+  block: Convert bdrv_co_discard() to byte-based
+  iscsi: Rely on block layer to break up large requests
+  ...
+
+---
+
+block: Use blk_co_pdiscard() for all BB level discard
+
+All read/write functions already have a single coroutine-based function
+on the BlockBackend level through which all requests go (no matter what
+API style the external caller used) and which passes the requests down
+to the block node level.
+
+
+static void blk_aio_pdiscard_entry(void *opaque)
+{
+    BlkAioEmAIOCB *acb = opaque;
+    BlkRwCo *rwco = &acb->rwco;
+
+    rwco->ret = blk_co_pdiscard(rwco->blk, rwco->offset, acb->bytes);
+    blk_aio_complete(acb);
+}
+
+static void blk_pdiscard_entry(void *opaque)
+{
+    BlkRwCo *rwco = opaque;
+    rwco->ret = blk_co_pdiscard(rwco->blk, rwco->offset, rwco->qiov->size);
+}
+
+---
+
+block: Remove bdrv_aio_pdiscard()
+
+It is unused now.
+
+---
+
+Commit 3482b9bc
+by Eric Blake, 11/17/2016 12:13 PM
+committed by Kevin Wolf, 11/22/2016 06:59 AM
+parent 49228d1e
+child 76989f4f
+
+block: Pass unaligned discard requests to drivers
+
+Discard is advisory, so rounding the requests to alignment
+boundaries is never semantically wrong from the data that
+the guest sees.  But at least the Dell Equallogic iSCSI SANs
+has an interesting property that its advertised discard
+alignment is 15M, yet documents that discarding a sequence
+of 1M slices will eventually result in the 15M page being
+marked as discarded, and it is possible to observe which
+pages have been discarded.
+
+Between commits 9f1963b and b8d0a980, we converted the block
+layer to a byte-based interface that ultimately ignores any
+unaligned head or tail based on the driver's advertised
+discard granularity, which means that qemu 2.7 refuses to
+pass any discard request smaller than 15M down to the Dell
+Equallogic hardware.  This is a slight regression in behavior
+compared to earlier qemu, where a guest executing discards
+in power-of-2 chunks used to be able to get every page
+discarded, but is now left with various pages still allocated
+because the guest requests did not align with the hardware's
+15M pages.
+
+Since the SCSI specification says nothing about a minimum
+discard granularity, and only documents the preferred
+alignment, it is best if the block layer gives the driver
+every bit of information about discard requests, rather than
+rounding it to alignment boundaries early.
+
+Rework the block layer discard algorithm to mirror the write
+zero algorithm: always peel off any unaligned head or tail
+and manage that in isolation, then do the bulk of the request
+on an aligned boundary.  The fallback when the driver returns
+-ENOTSUP for an unaligned request is to silently ignore that
+portion of the discard request; but for devices that can pass
+the partial request all the way down to hardware, this can
+result in the hardware coalescing requests and discarding
+aligned pages after all.
+
+---
+
+blkdebug: Add pass-through write_zero and discard support
+
+In order to test the effects of artificial geometry constraints
+on operations like write zero or discard, we first need blkdebug
+to manage these actions.  It also allows us to inject errors on
+those operations, just like we can for read/write/flush.
+
+We can also test the contract promised by the block layer; namely,
+if a device has specified limits on alignment or maximum size,
+then those limits must be obeyed (for now, the blkdebug driver
+merely inherits limits from whatever it is wrapping, but the next
+patch will further enhance it to allow specific limit overrides).
+
+This patch intentionally refuses to service requests smaller than
+the requested alignments; this is because an upcoming patch adds
+a qemu-iotest to prove that the block layer is correctly handling
+fragmentation, but the test only works if there is a way to tell
+the difference at artificial alignment boundaries when blkdebug is
+using a larger-than-default alignment.  If we let the blkdebug
+layer always defer to the underlying layer, which potentially has
+a smaller granularity, the iotest will be thwarted.
+
+Tested by setting up an NBD server with export 'foo', then invoking:
+$ ./qemu-io
+qemu-io> open -o driver=blkdebug blkdebug::nbd://localhost:10809/foo
+qemu-io> d 0 15M
+qemu-io> w -z 0 15M
+
+Pre-patch, the server never sees the discard (it was silently
+eaten by the block layer); post-patch it is passed across the
+wire.  Likewise, pre-patch the write is always passed with
+NBD_WRITE (with 15M of zeroes on the wire), while post-patch
+it can utilize NBD_WRITE_ZEROES (for less traffic).
+
+---
+
+Commit f5a5ca79
+by Manos Pitsidianakis, 06/09/2017 03:18 AM
+committed by Max Reitz, 06/26/2017 05:54 AM
+parent b3cf1c7c
+child 704e41ba
+
+block: change variable names in BlockDriverState
+
+Change the 'int count' parameter in *pwrite_zeros, *pdiscard related
+functions (and some others) to 'int bytes', as they both refer to bytes.
+This helps with code legibility.
+
+
+---
+Commit c03e7ef1
+by Christoph Hellwig, 05/05/2017 02:58 AM
+committed by Kevin Wolf, 05/11/2017 03:08 AM
+parent 4100a344
+child 3753e255
+
+nvme: Implement Write Zeroes
+
+hw/block/nvme.c
+
+static uint16_t nvme_write_zeros(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
+    NvmeRequest *req)
+{
+    NvmeRwCmd *rw = (NvmeRwCmd *)cmd;
+    const uint8_t lba_index = NVME_ID_NS_FLBAS_INDEX(ns->id_ns.flbas);
+    const uint8_t data_shift = ns->id_ns.lbaf[lba_index].ds;
+    uint64_t slba = le64_to_cpu(rw->slba);
+    uint32_t nlb  = le16_to_cpu(rw->nlb) + 1;
+    uint64_t aio_slba = slba << (data_shift - BDRV_SECTOR_BITS);
+    uint32_t aio_nlb = nlb << (data_shift - BDRV_SECTOR_BITS);
+
+    if (slba + nlb > ns->id_ns.nsze) {
+        return NVME_LBA_RANGE | NVME_DNR;
+    }
+
+    req->has_sg = false;
+    block_acct_start(blk_get_stats(n->conf.blk), &req->acct, 0,
+                     BLOCK_ACCT_WRITE);
+    req->aiocb = blk_aio_pwrite_zeroes(n->conf.blk, aio_slba, aio_nlb,
+                                        BDRV_REQ_MAY_UNMAP, nvme_rw_cb, req);
+    return NVME_NO_COMPLETE;
+}
+
+blk_aio_pwrite_zeroes !!
+BDRV_REQ_MAY_UNMAP !!

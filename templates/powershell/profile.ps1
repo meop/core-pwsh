@@ -1,10 +1,5 @@
 #Requires -RunAsAdministrator
-
-# since the Requires statement does not work on Unix
-if (-not $IsWindows -and
-    ((id -u) -ne 0)) {
-    throw "These scripts must be run as root!"
-}
+# only works on Windows, but othes can just use sudo
 
 function Invoke-SafeGetCommandPath ($n, $p) {
     $c = Get-Command -Name $n -ErrorAction SilentlyContinue

@@ -13,14 +13,19 @@ Set-Alias -Name gtfsFetchGroup -Value Invoke-GitTfsFetchGroup
 
 Set-Alias -Name hostnames -Value Get-Hostnames
 
-Set-Alias -Name msBuildLaunch -Value Invoke-MsBuild
-Set-Alias -Name msBuildBatch -Value Invoke-MsBuildBatch
-Set-Alias -Name msBuildGroup -Value Invoke-MsBuildGroup
-Set-Alias -Name msBuildUpdateProjectsCacheFile -Value Update-MsBuildProjectsCacheFile
+Set-Alias -Name msbuildLaunch -Value Invoke-MsBuild
+Set-Alias -Name msbuildBatch -Value Invoke-MsBuildBatch
+Set-Alias -Name msbuildGroup -Value Invoke-MsBuildGroup
+Set-Alias -Name msbuildUpdateProjectsCacheFile -Value Update-MsBuildProjectsCacheFile
 
 Set-Alias -Name nugetRestoreConcurrent -Value Invoke-NugetRestoreConcurrent
 Set-Alias -Name nugetRestoreBatch -Value Invoke-NugetRestoreBatch
 Set-Alias -Name nugetRestoreGroup -Value Invoke-NugetRestoreGroup
+
+Set-Alias -Name qemuLaunch -Value Invoke-Qemu
+Set-Alias -Name qumuCheckLaunch -Value Invoke-QemuCheck
+
+Set-Alias -Name vagrantLaunch -Value Invoke-Vagrant
 
 # Modules
 

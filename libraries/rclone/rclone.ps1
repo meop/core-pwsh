@@ -1,3 +1,5 @@
+Import-Module File
+
 enum RcloneOperation {
     copyto
     sync
@@ -13,7 +15,7 @@ function Get-RcloneCommand (
     $line = "rclone $Operation $Source $Destination"
     if ($Flags) { $line += " $Flags" }
 
-    Get-ConsoleCommand `
+    Get-ConsoleCommandAsRoot `
         -Line $line `
         -Config $Config
 }
@@ -56,7 +58,7 @@ function Invoke-RcloneGroup (
 
         $localPath = ConvertTo-CrossPlatformPathFormat $path
 
-        $source = "$($Config['rclone']['remote']):'$localPath'"
+        $source = "$($Config['rclone']['remote']):`"$localPath`""
 
         $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(
@@ -73,7 +75,7 @@ function Invoke-RcloneGroup (
 
         $remotePath = "$remotePathPrefix/$(Edit-TrimForwardSlashes $remotePathPostfix)"
 
-        $destination = "$($remote):'$remotePath'"
+        $destination = "$($remote):`"$remotePath`""
 
         if ($Restore.IsPresent) {
             $p = $source
@@ -84,14 +86,14 @@ function Invoke-RcloneGroup (
         $pathToCheck = if ($Restore.IsPresent) { $remotePath } else { $localPath }
 
         $commands +=
-        if (-not (Test-Path $pathToCheck)) {
+        if (-not (Test-PathAsRoot -Path $pathToCheck)) {
             Get-ConsoleCommand `
                 -Line "Write-Output 'skipping - invalid path: $pathToCheck'" `
                 -Config $Config
         } else {
             Get-RcloneCommand `
                 -Operation $(
-                    if (Test-PathIsOfType $pathToCheck Leaf) {
+                    if (Test-PathAsRoot -Path $pathToCheck -PathType Leaf) {
                         [RcloneOperation]::copyto
                     } else {
                         [RcloneOperation]::sync

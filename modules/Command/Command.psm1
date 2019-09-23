@@ -46,7 +46,7 @@ function Invoke-CommandsConcurrent (
 
     if ($WhatIf.IsPresent) {
         foreach ($command in $Commands) {
-            if (-not $command.SkipPrint) {
+            if (-not $command.SkipPrint.IsPresent) {
                 print -Command $command
             }
         }
@@ -57,7 +57,7 @@ function Invoke-CommandsConcurrent (
     # faster, and allows full i/o access
     if ($Commands.Length -eq 1) {
         $command = $Commands[0]
-        if (-not $command.SkipPrint) {
+        if (-not $command.SkipPrint.IsPresent) {
             print -Command $command
         }
         Invoke-Command -ScriptBlock (

@@ -1,7 +1,7 @@
 class Command {
     [string] $Line
     [string] $WorkingDir
-    [bool] $SkipPrint
+    [switch] $SkipPrint
     [string] $FgColor
     [string] $BgColor
 }
