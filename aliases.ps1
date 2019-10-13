@@ -23,7 +23,7 @@ Set-Alias -Name nugetRestoreBatch -Value Invoke-NugetRestoreBatch
 Set-Alias -Name nugetRestoreGroup -Value Invoke-NugetRestoreGroup
 
 Set-Alias -Name qemuLaunch -Value Invoke-Qemu
-Set-Alias -Name qumuCheckLaunch -Value Invoke-QemuCheck
+Set-Alias -Name qemuCheckLaunch -Value Invoke-QemuCheck
 
 Set-Alias -Name vagrantLaunch -Value Invoke-Vagrant
 
