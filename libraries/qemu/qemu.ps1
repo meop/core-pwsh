@@ -40,7 +40,7 @@ function Invoke-QemuCheck (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $line = "bash $PSScriptRoot/qemu/scripts/$CheckScript.sh"
+    $line = "bash $PSScriptRoot/scripts/$CheckScript.sh"
 
     Invoke-LineAsCommandOnConsoleAsRoot `
         -Line $line `
@@ -100,7 +100,9 @@ function Invoke-Qemu (
             $qemuArgs += $(args_audio_hda)
         }
         Default {
-            $audioExport = ''
+            $audioExport = @(
+                , ''
+            )
         }
     }
 
@@ -162,11 +164,15 @@ function Invoke-Qemu (
     $line = ''
 
     if ($vfioResetGvtMdevPartition) {
-        $line += SeparateCmds (Set-QemuPreCmdCreateVGpu $gvtUuid $c['gvtg']['type'] $pciIdIgd)
+        $line += SeparateCmds (
+            Set-QemuPreCmdCreateVGpu $gvtUuid $c['gvtg']['type'] $pciIdIgd
+        )
     }
 
     if ($vfioResetUsbController) {
-        $line += SeparateCmds (Set-QemuPreCmdRebindPciDeviceToDriver $pciIdUsbCtrl)
+        $line += SeparateCmds (
+            Set-QemuPreCmdRebindPciDeviceToDriver $pciIdUsbCtrl
+        )
     }
 
     $exePath = @( $c['exePath'] )
@@ -175,11 +181,15 @@ function Invoke-Qemu (
     )
 
     if ($vfioResetGvtMdevPartition) {
-        $line += SeparateCmds (Set-QemuPostCmdRemoveVGpu $gvtUuid $pciIdIgd)
+        $line += SeparateCmds (
+            Set-QemuPostCmdRemoveVGpu $gvtUuid $pciIdIgd
+        )
     }
 
     if ($vfioResetUsbController) {
-        $line += SeparateCmds (Set-QemuPostCmdResetPciDeviceDriver $pciIdUsbCtrl)
+        $line += SeparateCmds (
+            Set-QemuPostCmdResetPciDeviceDriver $pciIdUsbCtrl
+        )
     }
 
     Invoke-LineAsCommandOnConsoleAsRoot `
