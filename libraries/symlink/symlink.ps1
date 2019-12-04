@@ -5,7 +5,7 @@ function Get-SymlinkCommand (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $line =
-    if ((Invoke-SafeTestPath $TargetPath) -or $WhatIf.IsPresent) {
+    if (Test-Path $TargetPath) {
         "New-Item -Force -Path '$Path' -Value '$TargetPath' -ItemType SymbolicLink | Out-Null"
     } else {
         "Write-Output 'skipping - target path does not exist: $TargetPath'"

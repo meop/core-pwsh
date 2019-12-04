@@ -7,7 +7,7 @@ function expand (
 
     $expanded =
     if ($workingDir) {
-        if ((Test-Path $workingDir) -or $WhatIf.IsPresent) {
+        if (Test-Path $workingDir) {
             "Push-Location '$workingDir'; $line; Pop-Location;"
         } else {
             "Write-Output 'skipping - path does not exist: $workingDir'"
