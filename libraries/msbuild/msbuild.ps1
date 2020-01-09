@@ -1,9 +1,3 @@
-# note AnalyticSummary.Web runs its post build copy routine after evaluating
-#  if this variable is set to "" or not.. so $false is safe here too..
-# note also: MSBuild cannot handle 0 or 1, only 'true' or 'false'..
-#  case doesn't matter, but must be these strings
-$env:BuildingInsideVisualStudio = $false
-
 class VsToolFilePaths {
     [string] $VsDevCmd
     [string] $MsBuild
