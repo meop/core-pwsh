@@ -28,11 +28,10 @@ enum QemuSerialOption {
 }
 
 enum QemuCheck {
-    dma
+    dmesg
     iommu
     pci_reset
     usb
-    vfio
 }
 
 function Invoke-QemuCheck (

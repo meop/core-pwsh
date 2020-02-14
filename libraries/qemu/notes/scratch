@@ -31,7 +31,8 @@ intel_iommu=on vfio-pci.ids=8086:a102 modprobe.blacklist=ahci
 
 --- PulseAudio (requires Audio emulated)
 # /etc/pulse/default.pa
-load-module module-native-protocol-unix auth-anonymous=true
+#load-module module-native-protocol-unix
+load-module module-native-protocol-unix auth-anonymous=1
 
 # export of define these
 QEMU_AUDIO_DRV=pa
