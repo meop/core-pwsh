@@ -124,7 +124,7 @@ function Invoke-MsBuild (
             " `"`"$($VsToolFilePaths.MsBuild)`"`" "
         }
     } else {
-        " `"`"$($VsToolFilePaths.VsDevCmd)`"`" & `"`"$($VsToolFilePaths.MsBuild)`"`" "
+        " set __VSCMD_ARG_NO_LOGO=1 && `"`"$($VsToolFilePaths.VsDevCmd)`"`" && `"`"$($VsToolFilePaths.MsBuild)`"`" "
     }
 
     $line = "cmd /c `" $msBuildLaunchSection `"`"$Project`"`" /target:$($MsBuildParameters.Action) /verbosity:$($MsBuildParameters.Verbosity) /maxCpuCount:$($MsBuildParameters.MaxThreads) /property:Configuration=$($MsBuildParameters.Config);BuildInParallel=$($MsBuildParameters.InParallel);UseEnv=$($MsBuildParameters.UseEnv);UseSharedCompilation=$($MsBuildParameters.UseSharedCompilation) /noLogo /noConsoleLogger /fileLoggerParameters:LogFile=`"`"$logFilePath`"`" /fileLoggerParameters1:LogFile=`"`"$warnLogFilePath`"`";WarningsOnly /fileLoggerParameters2:LogFile=`"`"$failLogFilePath`"`";ErrorsOnly `""
