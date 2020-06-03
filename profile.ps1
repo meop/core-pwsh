@@ -1,5 +1,19 @@
 #Requires -RunAsAdministrator
-# only works on Windows, but othes can just use sudo
+# only works on Windows, but others can just use sudo
+
+if ($PSEdition -ne 'Core') {
+    Write-Output 'Please install and use PS Core: https://github.com/PowerShell/PowerShell'
+    Write-Output 'You are using:'
+    Write-Output $PSVersionTable
+    exit
+}
+
+function Invoke-SafeAppendToModulePath ($p) {
+    $splitter = if ($IsWindows) { ';' } else { ':' }
+    if (Test-Path $p) {
+        $env:PSModulePath += "$splitter$p"
+    }
+}
 
 function Invoke-SafeGetCommandPath ($n, $p) {
     $c = Get-Command -Name $n -ErrorAction SilentlyContinue
@@ -49,8 +63,11 @@ Invoke-SafeSetItem 'env:USERNAME' $(if ($IsWindows) { $env:USERNAME } else { $en
 $f = "$PSScriptRoot/prompt.ps1"
 if (Test-Path $f) { . $f }
 
-$d = "$PSScriptRoot/initializers"
+$d = "$PSScriptRoot/Initializers"
 if (Test-Path $d) {
     Get-ChildItem -Path $d -Filter '*.ps1' |
     ForEach-Object { . $_.FullName }
 }
+
+$s = "$PSScriptRoot/Libraries/source.ps1"
+if (Test-Path $s) { . $s }

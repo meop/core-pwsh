@@ -1,0 +1,22 @@
+# setup routines
+**/Initializers/*
+
+!**/Initializers/modules.ps1
+!**/Initializers/ssh.ps1
+
+
+# officially installed Modules
+**/Modules/*
+
+!**/Modules/Array
+!**/Modules/Command
+!**/Modules/Console
+!**/Modules/DotNet
+!**/Modules/Fact
+!**/Modules/File
+!**/Modules/Itemize
+!**/Modules/Platform
+!**/Modules/Rest
+
+# comes with PowerShell
+**/Scripts/*
