@@ -1,12 +1,12 @@
 Import-Module File
 
-enum RcloneOperation {
+enum RCloneOperation {
     copyto
     sync
 }
 
-function Get-RcloneCommand (
-    [Parameter(Mandatory = $true)] [RcloneOperation] $Operation
+function Get-RCloneCommand (
+    [Parameter(Mandatory = $true)] [RCloneOperation] $Operation
     , [Parameter(Mandatory = $true)] [string] $Source
     , [Parameter(Mandatory = $true)] [string] $Destination
     , [Parameter(Mandatory = $false)] [string] $Flags
@@ -20,7 +20,7 @@ function Get-RcloneCommand (
         -Config $Config
 }
 
-function Invoke-RcloneGroup (
+function Invoke-RCloneGroup (
     [Parameter(Mandatory = $true)] [string] $GroupName
     , [Parameter(Mandatory = $false)] [string] $Filter
     , [Parameter(Mandatory = $false)] [switch] $Restore
@@ -29,14 +29,14 @@ function Invoke-RcloneGroup (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $backupGroup = Get-RcloneBackupGroup $GroupName $Filter
+    $backupGroup = Get-RCloneBackupGroup $GroupName $Filter
     if (-not $backupGroup) {
         $f = if ($Filter) { ", filter: $Filter" } else { '' }
         Write-Output "no backup group found for group name: $GroupName$f"
         return
     }
 
-    $backupGroupRemote = Get-RcloneBackupGroupRemote $GroupName
+    $backupGroupRemote = Get-RCloneBackupGroupRemote $GroupName
     if (-not $backupGroupRemote) {
         Write-Output "no backup group remote found for group name: $GroupName"
         return
@@ -58,7 +58,7 @@ function Invoke-RcloneGroup (
 
         $localPath = ConvertTo-CrossPlatformPathFormat $path
 
-        $source = "$($Config['rclone']['remote']):`"$localPath`""
+        $source = "$($Config['rClone']['remote']):`"$localPath`""
 
         $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(
@@ -91,12 +91,12 @@ function Invoke-RcloneGroup (
                 -Line "Write-Output 'skipping - invalid path: $pathToCheck'" `
                 -Config $Config
         } else {
-            Get-RcloneCommand `
+            Get-RCloneCommand `
                 -Operation $(
                     if (Test-PathAsRoot -Path $pathToCheck -PathType Leaf) {
-                        [RcloneOperation]::copyto
+                        [RCloneOperation]::copyto
                     } else {
-                        [RcloneOperation]::sync
+                        [RCloneOperation]::sync
                     }
                 ) `
                 -Source $source `

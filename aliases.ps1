@@ -31,5 +31,5 @@ Set-Alias -Name vagrantLaunch -Value Invoke-Vagrant
 
 Set-Alias -Name fact -Value Invoke-Fact
 
-Set-Alias -Name rcloneGroup -Value Invoke-RcloneGroup
+Set-Alias -Name rcloneGroup -Value Invoke-RCloneGroup
 Set-Alias -Name symlinkGroup -Value Invoke-SymlinkGroup

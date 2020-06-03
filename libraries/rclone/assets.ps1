@@ -1,4 +1,4 @@
-function Get-RcloneBackupGroupRemote (
+function Get-RCloneBackupGroupRemote (
     [Parameter(Mandatory = $true)] [string] $GroupName
 ) {
     $groupName = $GroupName.ToLowerInvariant()
@@ -9,7 +9,7 @@ function Get-RcloneBackupGroupRemote (
     Select-Object -First 1
 }
 
-function Get-RcloneBackupGroup (
+function Get-RCloneBackupGroup (
     [Parameter(Mandatory = $true)] [string] $GroupName
     , [Parameter(Mandatory = $false)] [string] $Filter
 ) {
