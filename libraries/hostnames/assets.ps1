@@ -1,3 +1,3 @@
 function Get-Hostnames {
-    ConvertFrom-Yaml (Get-Content -Raw "$(Get-ProfileAssetsDir)/hostnames.yml")
+    ConvertFrom-Yaml (Get-Content -Raw "$global:PROFILE_ASSETS_DIR/hostnames.yml")
 }

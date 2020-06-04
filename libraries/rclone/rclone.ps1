@@ -29,6 +29,16 @@ function Invoke-RCloneGroup (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
+    function Get-RemoteFromConfig() {
+        if (-not $Config -or
+            -not $Config['rClone'] -or
+            -not $Config['rClone']['remote']) {
+            'local'
+        } else {
+            $Config['rClone']['remote']
+        }
+    }
+
     $backupGroup = Get-RCloneBackupGroup $GroupName $Filter
     if (-not $backupGroup) {
         $f = if ($Filter) { ", filter: $Filter" } else { '' }
@@ -58,7 +68,7 @@ function Invoke-RCloneGroup (
 
         $localPath = ConvertTo-CrossPlatformPathFormat $path
 
-        $source = "$($Config['rClone']['remote']):`"$localPath`""
+        $source = "$(Get-RemoteFromConfig):`"$localPath`""
 
         $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(

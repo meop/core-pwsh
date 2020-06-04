@@ -1,3 +1,3 @@
 function Get-SymlinkGroup {
-    Import-Csv "$(Get-ProfileAssetsDir)/symlinks.csv"
+    Import-Csv "$global:PROFILE_ASSETS_DIR/symlinks.csv"
 }

@@ -1,6 +1,6 @@
 function Get-MSBuildProjectsMap {
     Import-AssetCsv `
-        -Path "$(Get-ProfileAssetsDir)/msbuild/projects.map.csv"
+        -Path "$global:PROFILE_ASSETS_DIR/msbuild/projects.map.csv"
 }
 
 function Get-MsBuildProjectsBatchFilePaths (
@@ -8,7 +8,7 @@ function Get-MsBuildProjectsBatchFilePaths (
     , [Parameter(Mandatory = $false)] [switch] $UnionFilters
 ) {
     Get-AssetBatchFilePaths `
-        -Path "$(Get-ProfileAssetsDir)/msbuild/projects.txt" `
+        -Path "$global:PROFILE_ASSETS_DIR/msbuild/projects.txt" `
         -Filters $Filters `
         -UnionFilters:$UnionFilters
 }
@@ -19,7 +19,7 @@ function Get-MsBuildProjectsGroupFilePaths (
     , [Parameter(Mandatory = $false)] [string] $StopName
 ) {
     Get-AssetGroupFilePaths `
-        -Path "$(Get-ProfileAssetsDir)/msbuild/project-groups/$GroupName" `
+        -Path "$global:PROFILE_ASSETS_DIR/msbuild/project-groups/$GroupName" `
         -StartName $StartName `
         -StopName $StopName
 }
@@ -30,5 +30,5 @@ function Update-MsBuildProjectsCacheFile (
     Update-AssetCacheFile `
         -Include '*.sln' `
         -SearchPaths $Config['msBuild']['searchPaths'] `
-        -OutFilePath "$(Get-ProfileAssetsDir)/msbuild/projects.txt"
+        -OutFilePath "$global:PROFILE_ASSETS_DIR/msbuild/projects.txt"
 }

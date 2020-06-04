@@ -4,7 +4,7 @@ function Get-DockerContainerImage (
     $containerName = $ContainerName.ToLowerInvariant()
 
     Import-AssetCsv `
-        -Path "$(Get-ProfileAssetsDir)/docker/containers.csv" |
+        -Path "$global:PROFILE_ASSETS_DIR/docker/containers.csv" |
     Where-Object { $containerName -eq $_.Name.ToLowerInvariant() } |
     Select-Object -First 1
 }
@@ -14,7 +14,7 @@ function Get-DockerContainerArguments (
 ) {
     $containerName = $ContainerName.ToLowerInvariant()
 
-    $path = "$(Get-ProfileAssetsDir)/docker/container-args/$containerName.ps1"
+    $path = "$global:PROFILE_ASSETS_DIR/docker/container-args/$containerName.ps1"
     if (Test-Path $path) {
         . $path
         $script:arguments -join ' '

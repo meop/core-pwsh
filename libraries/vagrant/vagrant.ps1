@@ -6,7 +6,7 @@ function Invoke-Vagrant (
 ) {
     $target = $Target.ToString()
 
-    $path = "$(Get-ProfileAssetsDir)/vagrant/$target"
+    $path = "$global:PROFILE_ASSETS_DIR/vagrant/$target"
     if (-not (Test-Path $path)) {
         Write-Host "Target '$target' is not set up yet.."
     }

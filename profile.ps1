@@ -8,6 +8,13 @@ if ($PSEdition -ne 'Core') {
     exit
 }
 
+function Invoke-SafeAppendToPath ($p) {
+    $splitter = if ($IsWindows) { ';' } else { ':' }
+    if (Test-Path $p) {
+        $env:Path += "$splitter$p"
+    }
+}
+
 function Invoke-SafeAppendToModulePath ($p) {
     $splitter = if ($IsWindows) { ';' } else { ':' }
     if (Test-Path $p) {
@@ -57,10 +64,14 @@ function Invoke-SafeSetItem ($i, $v) {
     }
 }
 
-Invoke-SafeSetItem 'env:HOSTNAME' $(hostname).ToLowerInvariant()
-Invoke-SafeSetItem 'env:USERNAME' $(if ($IsWindows) { $env:USERNAME } else { $env:USER }).ToLowerInvariant()
+Invoke-SafeSetItem 'env:HOSTNAME' (hostname).ToLowerInvariant()
+Invoke-SafeSetItem 'env:USERNAME' (($IsWindows) ? $env:USERNAME : $env:USER).ToLowerInvariant()
+Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]))
 
 $f = "$PSScriptRoot/prompt.ps1"
+if (Test-Path $f) { . $f }
+
+$f = "$PSScriptRoot/Libraries/source.ps1"
 if (Test-Path $f) { . $f }
 
 $d = "$PSScriptRoot/Initializers"
@@ -68,6 +79,3 @@ if (Test-Path $d) {
     Get-ChildItem -Path $d -Filter '*.ps1' |
     ForEach-Object { . $_.FullName }
 }
-
-$s = "$PSScriptRoot/Libraries/source.ps1"
-if (Test-Path $s) { . $s }

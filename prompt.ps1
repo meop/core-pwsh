@@ -19,16 +19,15 @@ Set-PSReadlineOption -Colors @{
 Invoke-SafeInstallModule posh-git 1
 Import-Module posh-git
 
+Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]))
+
 function charHost {
-    if ($IsWindows) { [char]0xf17a }
-    elseif ($IsLinux) {
-        if (Get-Command 'pacman') { [char]0xf303 }
-        elseif (Get-Command 'apt') { [char]0xf306 }
-        elseif (Get-Command 'dnf') { [char]0xf30a }
-        elseif (Get-Command 'zypper') { [char]0xf314 }
-        else { [char]0xf17c }
-    } elseif ($IsMacOS) { [char]0xf179 }
-    else { [char]63 }
+    if ($env:OS_ID -eq 'windows') { [char]0xf17a }
+    elseif ($env:OS_ID -eq 'macos') { [char]0xf179 }
+    elseif ($env:OS_ID -eq 'arch') { [char]0xf303 }
+    elseif ($env:OS_ID -eq 'debian') { [char]0xf306 }
+    elseif ($env:OS_ID -eq 'raspios') { [char]0xf315 }
+    else { [char]0xf17c }
 }
 function charUser {
     if ($env:USERNAME -eq 'root' -or

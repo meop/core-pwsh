@@ -3,7 +3,7 @@ function Get-TfsReposBatchFilePaths (
     , [Parameter(Mandatory = $false)] [switch] $UnionFilters
 ) {
     Get-AssetBatchFilePaths `
-        -Path "$(Get-ProfileAssetsDir)/tfs/repos.txt" `
+        -Path "$global:PROFILE_ASSETS_DIR/tfs/repos.txt" `
         -Filters $Filters `
         -UnionFilters:$UnionFilters
 }

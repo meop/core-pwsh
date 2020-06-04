@@ -14,13 +14,24 @@ function Get-FgColor (
     [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::None
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
+    function Get-ColorFromConfig($key) {
+        if (-not $Config -or
+            -not $Config['console'] -or
+            -not $Config['console']['color']) {
+            Write-Debug "No console color defined for $key.."
+            $null
+        } else {
+            $Config['console']['color'][$key]
+        }
+    }
+
     switch ($ConsoleType) {
-        ([ConsoleType]::Ask) { $Config['console']['color']['ask'] }
-        ([ConsoleType]::Cmd) { $Config['console']['color']['cmd'] }
-        ([ConsoleType]::Info) { $Config['console']['color']['info'] }
-        ([ConsoleType]::Pass) { $Config['console']['color']['pass'] }
-        ([ConsoleType]::Warn) { $Config['console']['color']['warn'] }
-        ([ConsoleType]::Fail) { $Config['console']['color']['fail'] }
+        ([ConsoleType]::Ask) { Get-ColorFromConfig 'ask' }
+        ([ConsoleType]::Cmd) { Get-ColorFromConfig 'cmd' }
+        ([ConsoleType]::Info) { Get-ColorFromConfig 'info' }
+        ([ConsoleType]::Pass) { Get-ColorFromConfig 'pass' }
+        ([ConsoleType]::Warn) { Get-ColorFromConfig 'warn' }
+        ([ConsoleType]::Fail) { Get-ColorFromConfig 'fail' }
         Default { $null }
     }
 }

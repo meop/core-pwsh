@@ -4,7 +4,7 @@ function Get-RCloneBackupGroupRemote (
     $groupName = $GroupName.ToLowerInvariant()
 
     Import-AssetCsv `
-        -Path "$(Get-ProfileAssetsDir)/rclone/backups.csv" |
+        -Path "$global:PROFILE_ASSETS_DIR/rclone/backups.csv" |
     Where-Object { $groupName -eq $_.Group.ToLowerInvariant() } |
     Select-Object -First 1
 }
@@ -16,7 +16,7 @@ function Get-RCloneBackupGroup (
     $groupName = $GroupName.ToLowerInvariant()
 
     $x = Import-AssetCsv `
-        -Path "$(Get-ProfileAssetsDir)/rclone/backup-groups/$groupName"
+        -Path "$global:PROFILE_ASSETS_DIR/rclone/backup-groups/$groupName"
 
     if ($Filter) {
         $filter = $Filter.ToLowerInvariant()
