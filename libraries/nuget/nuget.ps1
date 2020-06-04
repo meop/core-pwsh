@@ -15,12 +15,9 @@ function Get-NugetRestoreCommand (
         $VsToolFilePaths.MsBuild
     }
 
-    $line =
-    if (-not (Test-Path $Project) -and -not $WhatIf.IsPresent) {
-        "Write-Output 'skipping - project not found: $Project'"
-    } else {
-        "nuget restore `"$Project`" -MSBuildPath `"$(Split-Path $msBuildPath)`""
-    }
+    $line = (-not (Test-Path $Project) -and -not $WhatIf.IsPresent) `
+        ? "Write-Output 'skipping - project not found: $Project'" `
+        : "nuget restore `"$Project`" -MSBuildPath `"$(Split-Path $msBuildPath)`""
 
     Get-ConsoleCommand `
         -Line $line `

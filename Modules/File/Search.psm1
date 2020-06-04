@@ -23,7 +23,7 @@ function Invoke-FindFilePathsMatchingPatternUnions(
         $withMatch = $withoutMatch = $true
 
         if ($With) {
-            $withMatch = if ($UnionWith.IsPresent) { $true } else { $false }
+            $withMatch = $UnionWith.IsPresent
             foreach ($w in $With) {
                 if ($UnionWith.IsPresent) {
                     $withMatch = $withMatch -and (Select-String $w $_ -Quiet)
@@ -34,7 +34,7 @@ function Invoke-FindFilePathsMatchingPatternUnions(
         }
 
         if ($Without -and $withMatch) {
-            $withoutMatch = if ($UnionWithout.IsPresent) { $true } else { $false }
+            $withoutMatch = $UnionWithout.IsPresent
             foreach ($wo in $Without) {
                 if ($UnionWithout.IsPresent) {
                     $withoutMatch = $withoutMatch -and -not (Select-String $wo $_ -Quiet)

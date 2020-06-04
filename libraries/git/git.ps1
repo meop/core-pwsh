@@ -19,7 +19,7 @@ function Invoke-GitRebaseWithRetries (
     $rebaseOption = ''
 
     do {
-        $operation = if ($runFresh) { "rebase $TargetBranch" } else { "rebase --$rebaseOption" }
+        $operation = $runFresh ? "rebase $TargetBranch" : "rebase --$rebaseOption"
         $line = "git $operation *> $outFile"
 
         Invoke-LineAsCommandOnConsole `

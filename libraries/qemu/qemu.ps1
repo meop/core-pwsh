@@ -74,8 +74,8 @@ function Invoke-Qemu (
     $pciIdIgd = $pciIds['integratedGrapicsDevice']
     $pciIdUsbCtrl = $pciIds['usbController']
 
-    $Cores = if ($Cores) { $Cores } else { $c['default']['cores'] }
-    $Memory = if ($Memory) { $Memory } else { $c['default']['memory'] }
+    $Cores = $Cores ? $Cores : $c['default']['cores']
+    $Memory = $Memory ? $Memory : $c['default']['memory']
 
     $qemuArgs = @()
     $audioExport = @()

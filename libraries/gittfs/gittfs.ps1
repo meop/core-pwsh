@@ -14,9 +14,9 @@ function Get-GitTfsCloneCommand (
     if ((Test-Path $cloneDir) -and -not $WhatIf.IsPresent) {
         "Write-Output 'skipping - directory already found: $cloneDir'"
     } else {
-        $operation = if ($FullClone.IsPresent) { "clone" } else { "quick-clone" }
-        $_changeset = if ($ChangeSet) { "--changeset=$ChangeSet" } else { "" }
-        $_ignoreregex = if ($IgnoreRegex) { "--ignore-regex=$IgnoreRegex" } else { "" }
+        $operation = $FullClone.IsPresent ? "clone" : "quick-clone"
+        $_changeset = $ChangeSet ? "--changeset=$ChangeSet" : ""
+        $_ignoreregex = $IgnoreRegex ? "--ignore-regex=$IgnoreRegex" : ""
 
         "git tfs $operation $uri $/$Trunk $cloneDir --branches=none $_changeset $_ignoreregex --workspace=$workspaceDir"
     }
@@ -80,12 +80,9 @@ function Get-GitTfsFetchCommand (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $line =
-    if (-not (Test-Path $Repo) -and -not $WhatIf.IsPresent) {
-        "Write-Output 'skipping - repo not found: $Repo; did you clone yet?'"
-    } else {
-        "git tfs fetch"
-    }
+    $line = (-not (Test-Path $Repo) -and -not $WhatIf.IsPresent) `
+        ? "Write-Output 'skipping - repo not found: $Repo; did you clone yet?'" `
+        : "git tfs fetch"
 
     Get-ConsoleCommand `
         -Line $line `

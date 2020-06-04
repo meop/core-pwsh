@@ -22,8 +22,8 @@ function Invoke-Rest (
     , [Parameter(Mandatory = $false)] [bool] $UseHttps = $false
     , [Parameter(Mandatory = $false)] [int] $Port = $null
 ) {
-    $protocol = if ($UseHttps) { 'https' } else { 'http' }
-    $port = if ($Port) { $Port } else { if ($UseHttps) { 443 } else { 80 } }
+    $protocol = $UseHttps ? 'https' : 'http'
+    $port = $Port ? $Port : ($UseHttps ? 443 : 80)
 
     $uri = "$($protocol)://$($Hostname):$port/$Route"
     $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession

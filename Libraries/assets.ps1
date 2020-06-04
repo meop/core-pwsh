@@ -2,20 +2,16 @@ function Import-AssetCsv (
     [Parameter(Mandatory = $true)] [string] $Path
 ) {
     $path = ConvertTo-CrossPlatformPathFormat `
-        $(if ($Path.EndsWith('.csv')) { $Path } else { "$Path.csv" })
+        ($Path.EndsWith('.csv') ? $Path : "$Path.csv")
 
-    if (Test-Path $path) {
-        Import-Csv $path
-    } else {
-        $null
-    }
+    (Test-Path $path) ? (Import-Csv $path) : $null
 }
 
 function Import-AssetList (
     [Parameter(Mandatory = $true)] [string] $Path
 ) {
     $path = ConvertTo-CrossPlatformPathFormat `
-        $(if ($Path.EndsWith('.txt')) { $Path } else { "$Path.txt" })
+        ($Path.EndsWith('.txt') ? $Path : "$Path.txt")
 
     if (Test-Path $path) {
         $items = Get-Content $path | Where-Object {
@@ -42,7 +38,7 @@ function Update-AssetCacheFile (
     $files = @()
     $SearchPaths | ForEach-Object {
         (Invoke-FindFilePathsMatchingPattern -Include $Include -Path $_ -Depth 100) | ForEach-Object {
-            $path = if ($StoreParentPath.IsPresent) { Split-Path $_ } else { $_ }
+            $path = $StoreParentPath.IsPresent ? (Split-Path $_) : $_
             $files += ConvertTo-CrossPlatformPathFormat $path
         }
     }

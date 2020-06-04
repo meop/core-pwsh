@@ -1,9 +1,5 @@
 function Format-AsSudo (
     [Parameter(Mandatory = $true)] [string] $Line
 ) {
-    if (-not $IsWindows) {
-        "sudo bash -c ' $Line '"
-    } else {
-        $Line
-    }
+    $IsWindows ? $Line : "sudo bash -c ' $Line '"
 }

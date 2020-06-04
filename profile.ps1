@@ -9,14 +9,14 @@ if ($PSEdition -ne 'Core') {
 }
 
 function Invoke-SafeAppendToPath ($p) {
-    $splitter = if ($IsWindows) { ';' } else { ':' }
+    $splitter = $IsWindows ? ';' : ':'
     if (Test-Path $p) {
         $env:Path += "$splitter$p"
     }
 }
 
 function Invoke-SafeAppendToModulePath ($p) {
-    $splitter = if ($IsWindows) { ';' } else { ':' }
+    $splitter = $IsWindows ? ';' : ':'
     if (Test-Path $p) {
         $env:PSModulePath += "$splitter$p"
     }
@@ -24,28 +24,16 @@ function Invoke-SafeAppendToModulePath ($p) {
 
 function Invoke-SafeGetCommandPath ($n, $p) {
     $c = Get-Command -Name $n -ErrorAction SilentlyContinue
-    if ($c) {
-        $c.Source
-    } else {
-        $p
-    }
+    $c ? $c.Source : $p
 }
 
 function Invoke-SafeCheckCommandPathEqual ($n, $p) {
     $c = Get-Command -Name $n -ErrorAction SilentlyContinue
-    if ($c) {
-        ((Resolve-Path $c.Source).Path).ToLowerInvariant() -eq $p.ToLowerInvariant()
-    } else {
-        $false
-    }
+    $c ? ((Resolve-Path $c.Source).Path).ToLowerInvariant() -eq $p.ToLowerInvariant() : $false
 }
 
 function Invoke-SafeGetContent ($p, [switch] $r) {
-    if (Test-Path $p) {
-        Get-Content -Path $p -Raw:$r
-    } else {
-        Write-Output $null
-    }
+    (Test-Path $p) ? (Get-Content -Path $p -Raw:$r) : (Write-Output $null)
 }
 
 function Invoke-SafeInstallModule ($n, $v = 0) {

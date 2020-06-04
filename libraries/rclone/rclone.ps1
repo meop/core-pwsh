@@ -7,12 +7,12 @@ enum RCloneOperation {
 
 function Get-RCloneCommand (
     [Parameter(Mandatory = $true)] [RCloneOperation] $Operation
-    , [Parameter(Mandatory = $true)] [string] $Source
+    , [Parameter(Mandatory = $true)] [string] $Origination
     , [Parameter(Mandatory = $true)] [string] $Destination
     , [Parameter(Mandatory = $false)] [string] $Flags
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $line = "rclone $Operation $Source $Destination"
+    $line = "rclone $Operation $Origination $Destination"
     if ($Flags) { $line += " $Flags" }
 
     Get-ConsoleCommandAsRoot `
@@ -22,6 +22,8 @@ function Get-RCloneCommand (
 
 function Invoke-RCloneGroup (
     [Parameter(Mandatory = $true)] [string] $GroupName
+    , [Parameter(Mandatory = $false)] [string] $SourceName
+    , [Parameter(Mandatory = $false)] [string] $RemoteName
     , [Parameter(Mandatory = $false)] [string] $Filter
     , [Parameter(Mandatory = $false)] [switch] $Restore
     , [Parameter(Mandatory = $false)] [switch] $CopyLinks
@@ -29,94 +31,77 @@ function Invoke-RCloneGroup (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    function Get-RemoteFromConfig() {
-        if (-not $Config -or
-            -not $Config['rClone'] -or
-            -not $Config['rClone']['remote']) {
-            'local'
-        } else {
-            $Config['rClone']['remote']
-        }
-    }
-
     $backupGroup = Get-RCloneBackupGroup $GroupName $Filter
     if (-not $backupGroup) {
-        $f = if ($Filter) { ", filter: $Filter" } else { '' }
+        $f = $Filter ? ", filter: $Filter" : ''
         Write-Output "no backup group found for group name: $GroupName$f"
         return
     }
 
-    $backupGroupRemote = Get-RCloneBackupGroupRemote $GroupName
-    if (-not $backupGroupRemote) {
-        Write-Output "no backup group remote found for group name: $GroupName"
+    $backupGroupRemotes = Get-RCloneBackupGroupRemotes $GroupName
+    if (-not $backupGroupRemotes) {
+        Write-Output "no backup group remotes found for group name: $GroupName"
         return
     }
 
-    $remote = $backupGroupRemote.Remote
+    foreach ($backupGroupRemote in $backupGroupRemotes) {
+        $source = $backupGroupRemote.Source
+        $remote = $backupGroupRemote.Remote
 
-    $commands = @()
-
-    foreach ($backup in $backupGroup) {
-        $path =
-            $ExecutionContext.InvokeCommand.ExpandString(
-                $backup.Path
-            )
-
-        $flags = ''
-        if ($CopyLinks.IsPresent) { $flags += ' --copy-links' }
-        if ($DryRun.IsPresent) { $flags += ' --dry-run' }
-
-        $localPath = ConvertTo-CrossPlatformPathFormat $path
-
-        $source = "$(Get-RemoteFromConfig):`"$localPath`""
-
-        $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
-            $ExecutionContext.InvokeCommand.ExpandString(
-                $backupGroupRemote.RemotePath
-            )
-
-        $remotePathPostfix = ConvertTo-ExpandedDirectoryPathFormat `
-            $ExecutionContext.InvokeCommand.ExpandString(
-                $(
-                    if ($backup.NewPath) { $backup.NewPath }
-                    else { $path }
-                )
-            )
-
-        $remotePath = "$remotePathPrefix/$(Edit-TrimForwardSlashes $remotePathPostfix)"
-
-        $destination = "$($remote):`"$remotePath`""
-
-        if ($Restore.IsPresent) {
-            $p = $source
-            $source = $destination
-            $destination = $p
+        if ($SourceName -and $SourceName -ne $source) {
+            continue
         }
 
-        $pathToCheck = if ($Restore.IsPresent) { $remotePath } else { $localPath }
+        if ($RemoteName -and $RemoteName -ne $remote) {
+            continue
+        }
 
-        $commands +=
-        if (-not (Test-PathAsRoot -Path $pathToCheck)) {
-            Get-ConsoleCommand `
-                -Line "Write-Output 'skipping - invalid path: $pathToCheck'" `
-                -Config $Config
-        } else {
-            Get-RCloneCommand `
-                -Operation $(
-                    if (Test-PathAsRoot -Path $pathToCheck -PathType Leaf) {
-                        [RCloneOperation]::copyto
-                    } else {
-                        [RCloneOperation]::sync
-                    }
-                ) `
-                -Source $source `
+        $commands = @()
+
+        foreach ($backup in $backupGroup) {
+            $path =
+                $ExecutionContext.InvokeCommand.ExpandString(
+                    $backup.Path
+                )
+
+            $flags = ''
+            if ($CopyLinks.IsPresent) { $flags += ' --copy-links' }
+            if ($DryRun.IsPresent) { $flags += ' --dry-run' }
+
+            $localPath = ConvertTo-CrossPlatformPathFormat $path
+
+            $origination = "$($source):`"$localPath`""
+
+            $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
+                $ExecutionContext.InvokeCommand.ExpandString(
+                    $backupGroupRemote.RemotePath
+                )
+
+            $remotePathPostfix = ConvertTo-ExpandedDirectoryPathFormat `
+                $ExecutionContext.InvokeCommand.ExpandString(
+                    $($backup.NewPath ? $backup.NewPath : $path)
+                )
+
+            $remotePath = "$remotePathPrefix/$(Edit-TrimForwardSlashes $remotePathPostfix)"
+
+            $destination = "$($remote):`"$remotePath`""
+
+            if ($Restore.IsPresent) {
+                $p = $origination
+                $origination = $destination
+                $destination = $p
+            }
+
+            $commands += Get-RCloneCommand `
+                -Operation $backup.Operation `
+                -Origination $origination `
                 -Destination $destination `
                 -Flags $flags `
                 -Config $Config
         }
-    }
 
-    Invoke-CommandsConcurrent `
-        -Commands $commands `
-        -WhatIf:$WhatIf
+        Invoke-CommandsConcurrent `
+            -Commands $commands `
+            -WhatIf:$WhatIf
+    }
 }

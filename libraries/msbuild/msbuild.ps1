@@ -22,7 +22,7 @@ function Get-VsToolFilePathsProject (
         $_.Project.ToLowerInvariant().Contains($Project.ToLowerInvariant())
     }
 
-    $vsVersion = if ($projectMap) { $projectMap.VsVersion } else { 'latest' }
+    $vsVersion = $projectMap ? $projectMap.VsVersion : 'latest'
 
     [VsToolFilePaths] @{
         VsDevCmd    = $Config['vsDevCmd']['filePath'][$vsVersion]
