@@ -68,9 +68,6 @@ Invoke-SafeSetItem 'env:HOSTNAME' (hostname).ToLowerInvariant()
 Invoke-SafeSetItem 'env:USERNAME' (($IsWindows) ? $env:USERNAME : $env:USER).ToLowerInvariant()
 Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]))
 
-$f = "$PSScriptRoot/prompt.ps1"
-if (Test-Path $f) { . $f }
-
 $f = "$PSScriptRoot/Libraries/source.ps1"
 if (Test-Path $f) { . $f }
 
