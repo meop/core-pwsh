@@ -20,6 +20,6 @@ Note: If you already have files there that you want to keep, this project can in
 
 ## Copy prompt
 
-If you want to use the provided prompt, or want to modify, or create your own.. you can then copy it into /Initializers
+If you want to use the provided prompt, or want to modify, or create your own.. you can then copy it into ./Initializers
 
-> pseudo: cp /prompt.ps1 /Initializers/prompt.ps1
+> pseudo: cp ./prompt.ps1 ./Initializers/prompt.ps1
