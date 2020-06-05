@@ -1,24 +1,26 @@
-# Setting up
+# Prerequisite
 
-## Install PowerShell Core
+Install PowerShell Core
 
 https://github.com/PowerShell/PowerShell
 
-## Clone this project to the PowerShell profile directory
+
+# Setup
+
+Clone this project to the PowerShell Core profile directory
 
 Note: If you already have files there that you want to keep, this project can instead be cloned into a sub folder there and you can swap between profiles, but that is outside the scope of this documentation
 
-### Locations
-
-#### Windows
+## Windows
 
 \%userprofile%\Documents\PowerShell\
 
-##### Linux
+## Linux
 
 ./config/powershell
 
-## Copy prompt
+
+# [Optional] Use included prompt
 
 If you want to use the provided prompt, or want to modify, or create your own.. you can then copy it into ./Initializers
 
