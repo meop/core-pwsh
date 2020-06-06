@@ -36,12 +36,17 @@ enum QemuCheck {
 
 function Invoke-QemuCheck (
     [Parameter(Mandatory = $true)] [QemuCheck] $CheckScript
+    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $line = "bash $PSScriptRoot/scripts/$CheckScript.sh"
 
-    Invoke-LineAsCommandOnConsoleAsRoot `
+    if ($AsSudo.IsPresent) {
+        $line = Format-AsSudo $line
+    }
+
+    Invoke-LineAsCommandOnConsole `
         -Line $line `
         -WhatIf:$WhatIf `
         -Config $Config
@@ -54,6 +59,7 @@ function Invoke-Qemu (
     , [Parameter(Mandatory = $false)] [QemuAudioOption] $AudioOption = [QemuAudioOption]::None
     , [Parameter(Mandatory = $false)] [QemuDisplayOption] $GraphicsOption = [QemuDisplayOption]::None
     , [Parameter(Mandatory = $false)] [QemuSerialOption] $SerialOption = [QemuSerialOption]::None
+    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -191,7 +197,11 @@ function Invoke-Qemu (
         )
     }
 
-    Invoke-LineAsCommandOnConsoleAsRoot `
+    if ($AsSudo.IsPresent) {
+        $line = Format-AsSudo $line
+    }
+
+    Invoke-LineAsCommandOnConsole `
         -Line $Line `
         -WhatIf:$WhatIf `
         -Config $Config

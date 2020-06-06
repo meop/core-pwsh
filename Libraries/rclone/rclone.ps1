@@ -10,12 +10,17 @@ function Get-RCloneCommand (
     , [Parameter(Mandatory = $true)] [string] $Origination
     , [Parameter(Mandatory = $true)] [string] $Destination
     , [Parameter(Mandatory = $false)] [string] $Flags
+    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $line = "rclone $Operation $Origination $Destination"
     if ($Flags) { $line += " $Flags" }
 
-    Get-ConsoleCommandAsRoot `
+    if ($AsSudo.IsPresent) {
+        $line = Format-AsSudo $line
+    }
+
+    Get-ConsoleCommand `
         -Line $line `
         -Config $Config
 }
@@ -28,6 +33,7 @@ function Invoke-RCloneGroup (
     , [Parameter(Mandatory = $false)] [switch] $Restore
     , [Parameter(Mandatory = $false)] [switch] $CopyLinks
     , [Parameter(Mandatory = $false)] [switch] $DryRun
+    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -97,6 +103,7 @@ function Invoke-RCloneGroup (
                 -Origination $origination `
                 -Destination $destination `
                 -Flags $flags `
+                -AsSudo:$AsSudo `
                 -Config $Config
         }
 
