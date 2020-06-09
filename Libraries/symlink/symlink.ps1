@@ -1,6 +1,7 @@
 function Get-SymlinkCommand (
     [Parameter(Mandatory = $true)] $Path
     , [Parameter(Mandatory = $true)] $TargetPath
+    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -11,13 +12,18 @@ function Get-SymlinkCommand (
         "Write-Output 'skipping - target path does not exist: $TargetPath'"
     }
 
-    Get-ConsoleCommandAsRoot `
+    if ($AsSudo.IsPresent) {
+        $line = Format-AsSudo $line
+    }
+
+    Get-ConsoleCommand `
         -Line $line `
         -Config $Config
 }
 
 function Invoke-SymlinkGroup (
-    [Parameter(Mandatory = $false)] [switch] $WhatIf
+    [Parameter(Mandatory = $false)] [switch] $AsSudo
+    , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $linkGroup = Get-SymlinkGroup
@@ -31,6 +37,7 @@ function Invoke-SymlinkGroup (
         $commands += Get-SymlinkCommand `
             -Path $path `
             -TargetPath $targetPath `
+            -AsSudo:$AsSudo `
             -WhatIf:$WhatIf `
             -Config $Config
     }

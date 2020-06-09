@@ -54,21 +54,6 @@ function Get-ConsoleCommand (
     $command
 }
 
-function Get-ConsoleCommandAsRoot (
-    [Parameter(Mandatory = $true)] [string] $Line
-    , [Parameter(Mandatory = $false)] [string] $WorkingDir
-    , [Parameter(Mandatory = $false)] [switch] $SkipPrint
-    , [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::Cmd
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    Get-ConsoleCommand `
-        -Line (Format-AsSudo $Line) `
-        -WorkingDir $WorkingDir `
-        -SkipPrint:$SkipPrint `
-        -ConsoleType $ConsoleType `
-        -Config $Config
-}
-
 function Invoke-LineAsCommandOnConsole (
     [Parameter(Mandatory = $true)] [string] $Line
     , [Parameter(Mandatory = $false)] [string] $WorkingDir
@@ -83,19 +68,6 @@ function Invoke-LineAsCommandOnConsole (
     Invoke-CommandsConcurrent `
         -Commands $command `
         -WhatIf:$WhatIf
-}
-
-function Invoke-LineAsCommandOnConsoleAsRoot (
-    [Parameter(Mandatory = $true)] [string] $Line
-    , [Parameter(Mandatory = $false)] [string] $WorkingDir
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    Invoke-LineAsCommandOnConsole `
-        -Line (Format-AsSudo $Line) `
-        -WorkingDir $WorkingDir `
-        -WhatIf:$WhatIf `
-        -Config $Config
 }
 
 # write-host
