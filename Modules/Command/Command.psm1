@@ -1,6 +1,5 @@
-function expand (
+function expandCommand (
     [Parameter(Mandatory = $true)] [Command] $Command
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
 ) {
     $line = $Command.Line
     $workingDir = $Command.WorkingDir
@@ -19,18 +18,18 @@ function expand (
     $expanded
 }
 
-function print (
+function printCommand (
     [Parameter(Mandatory = $true)] [Command] $Command
 ) {
     $props = @{
-        Object = expand $Command
+        Object = expandCommand $Command
     }
 
-    if ($Command.FgColor) {
-        $props.Add('ForegroundColor', $Command.FgColor)
+    if ($Command.ForegroundColor) {
+        $props.Add('ForegroundColor', $Command.ForegroundColor)
     }
     if ($Command.BackgroundColor) {
-        $props.Add('BackgroundColor', $Command.BgColor)
+        $props.Add('BackgroundColor', $Command.BackgroundColor)
     }
 
     Write-Host @props
@@ -39,59 +38,113 @@ function print (
 function Invoke-CommandsConcurrent (
     [Parameter(Mandatory = $false)] [Command[]] $Commands
     , [Parameter(Mandatory = $false)] [int] $ThrottleLimit = 8
-    , [Parameter(Mandatory = $false)] [int] $StatusCheckDelayInMilliseconds = 100
+    , [Parameter(Mandatory = $false)] [int] $PollingDelayInMs = 100
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
 ) {
     if (-not $Commands) { return }
 
-    if ($WhatIf.IsPresent) {
-        foreach ($command in $Commands) {
-            if (-not $command.SkipPrint.IsPresent) {
-                print -Command $command
-            }
-        }
-        return
-    }
-
-    # if just 1 command, execute in foreground
-    # faster, and allows full i/o access
-    if ($Commands.Length -eq 1) {
-        $command = $Commands[0]
-        if (-not $command.SkipPrint.IsPresent) {
-            print -Command $command
-        }
-        Invoke-Command -ScriptBlock (
-            [scriptblock]::Create(
-                (expand -Command $command -WhatIf:$WhatIf)
-            )
+    $scriptblocks = @()
+    foreach ($command in $Commands) {
+        $scriptblocks += [scriptblock]::Create(
+            (expandCommand -Command $command)
         )
+    }
+
+    $onEnqueue = {
+        param($index)
+
+        $command = $Commands[$index]
+        if ($WhatIf.IsPresent) {
+            printCommand -Command $command
+        }
+    }
+
+    $onDequeue = {
+        param($index)
+
+        $command = $Commands[$index]
+        printCommand -Command $command
+    }
+
+    Invoke-ScriptBlocksConcurrent `
+        -ScriptBlocks $scriptblocks `
+        -OnEnqueue $onEnqueue `
+        -OnDequeue $onDequeue `
+        -ThrottleLimit $ThrottleLimit `
+        -PollingDelayInMs $PollingDelayInMs`
+        -WhatIf:$WhatIf
+}
+
+function Invoke-ScriptBlocksConcurrent (
+    [Parameter(Mandatory = $false)] [scriptblock[]] $ScriptBlocks
+    , [Parameter(Mandatory = $false)] [object[]] $ArgumentLists
+    , [Parameter(Mandatory = $false)] [scriptblock] $OnEnqueue
+    , [Parameter(Mandatory = $false)] [scriptblock] $OnDequeue
+    , [Parameter(Mandatory = $false)] [int] $ThrottleLimit = 8
+    , [Parameter(Mandatory = $false)] [int] $PollingDelayInMs = 100
+    , [Parameter(Mandatory = $false)] [switch] $WhatIf
+) {
+    if (-not $ScriptBlocks) { return }
+
+    # if just 1 block, execute in foreground
+    # faster, and allows full i/o access
+    if ($ScriptBlocks.Length -eq 1) {
+        $scriptblock = $ScriptBlocks[0]
+
+        if ($OnDequeue) {
+            Invoke-Command $OnDequeue -ArgumentList 0
+        }
+
+        if (-not $WhatIf.IsPresent) {
+            $props = @{
+                ScriptBlock = $scriptblock
+            }
+
+            if ($ArgumentLists) {
+                $props.Add('ArgumentList', $ArgumentLists[0])
+            }
+
+            Invoke-Command @props
+        }
+
         return
     }
 
-    $jobsCount = $Commands.Length
+    $jobsCount = $ScriptBlocks.Length
     $jobsQueue = New-Object System.Collections.Queue
 
     for ($i = 0; $i -lt $jobsCount; ++$i) {
         $props = @{
-            ScriptBlock = (
-                [scriptblock]::Create(
-                    (expand -Command $Commands[$i] -WhatIf:$WhatIf)
-                )
-            )
+            ScriptBlock = $ScriptBlocks[$i]
         }
+
+        if ($ArgumentLists) {
+            $props.Add('ArgumentList', $ArgumentLists[$i])
+        }
+
         if ($i -eq 0) {
             $props.Add('ThrottleLimit', $ThrottleLimit)
         }
-        $jobsQueue.Enqueue((Start-ThreadJob @props))
+
+        if ($OnEnqueue) {
+            Invoke-Command $OnEnqueue -ArgumentList $i
+        }
+
+        if (-not $WhatIf.IsPresent) {
+            $jobsQueue.Enqueue((Start-ThreadJob @props))
+        }
     }
 
     while ($jobsQueue.Count -gt 0) {
-        print -Command $Commands[$jobsCount - $jobsQueue.Count]
+        if ($OnDequeue) {
+            Invoke-Command $OnDequeue -ArgumentList ($jobsCount - $jobsQueue.Count)
+        }
+
         $job = $jobsQueue.Dequeue()
 
         $done = $false
         while (-not $done) {
-            Start-Sleep -Milliseconds $StatusCheckDelayInMilliseconds
+            Start-Sleep -Milliseconds $PollingDelayInMs
             $jobStatus = $job | Get-Job
             if ($jobStatus.HasMoreData) {
                 $job | Receive-Job
@@ -109,4 +162,4 @@ function Invoke-CommandsConcurrent (
     }
 }
 
-Export-ModuleMember -Function Invoke-CommandsConcurrent
+Export-ModuleMember -Function Invoke-CommandsConcurrent, Invoke-ScriptBlocksConcurrent

@@ -1,17 +1,17 @@
 Import-Module Command
 
-enum ConsoleType {
+enum Console {
+    None
     Ask
     Cmd
     Info
     Pass
     Warn
     Fail
-    None
 }
 
-function Get-FgColor (
-    [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::None
+function Get-ForegroundColor (
+    [Parameter(Mandatory = $false)] [Console] $Console = [Console]::None
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     function Get-ColorFromConfig($key) {
@@ -25,13 +25,13 @@ function Get-FgColor (
         }
     }
 
-    switch ($ConsoleType) {
-        ([ConsoleType]::Ask) { Get-ColorFromConfig 'ask' }
-        ([ConsoleType]::Cmd) { Get-ColorFromConfig 'cmd' }
-        ([ConsoleType]::Info) { Get-ColorFromConfig 'info' }
-        ([ConsoleType]::Pass) { Get-ColorFromConfig 'pass' }
-        ([ConsoleType]::Warn) { Get-ColorFromConfig 'warn' }
-        ([ConsoleType]::Fail) { Get-ColorFromConfig 'fail' }
+    switch ($Console) {
+        ([Console]::Ask) { Get-ColorFromConfig 'ask' }
+        ([Console]::Cmd) { Get-ColorFromConfig 'cmd' }
+        ([Console]::Info) { Get-ColorFromConfig 'info' }
+        ([Console]::Pass) { Get-ColorFromConfig 'pass' }
+        ([Console]::Warn) { Get-ColorFromConfig 'warn' }
+        ([Console]::Fail) { Get-ColorFromConfig 'fail' }
         Default { $null }
     }
 }
@@ -41,16 +41,14 @@ function Get-FgColor (
 function Get-ConsoleCommand (
     [Parameter(Mandatory = $true)] [string] $Line
     , [Parameter(Mandatory = $false)] [string] $WorkingDir
-    , [Parameter(Mandatory = $false)] [switch] $SkipPrint
-    , [Parameter(Mandatory = $false)] [ConsoleType] $ConsoleType = [ConsoleType]::Cmd
+    , [Parameter(Mandatory = $false)] [Console] $Console = [Console]::Cmd
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $command = [Command]::new()
     $command.Line = $Line
     $command.WorkingDir = $WorkingDir
-    $command.SkipPrint = $SkipPrint
-    $command.FgColor = Get-FgColor $ConsoleType $Config
-    $command.BgColor = $null
+    $command.ForegroundColor = Get-ForegroundColor $Console $Config
+    $command.BackgroundColor = $null
     $command
 }
 
@@ -78,7 +76,7 @@ function Write-HostAsk (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     Write-Host $line `
-        -ForegroundColor (Get-FgColor ([ConsoleType]::Ask) $Config) `
+        -ForegroundColor (Get-ForegroundColor ([Console]::Ask) $Config) `
         -NoNewline:$NoNewLine
 }
 
@@ -88,7 +86,7 @@ function Write-HostInfo (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     Write-Host $line `
-        -ForegroundColor (Get-FgColor ([ConsoleType]::Info) $Config) `
+        -ForegroundColor (Get-ForegroundColor ([Console]::Info) $Config) `
         -NoNewline:$NoNewLine
 }
 
@@ -98,7 +96,7 @@ function Write-HostPass (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     Write-Host $line `
-        -ForegroundColor (Get-FgColor ([ConsoleType]::Pass) $Config) `
+        -ForegroundColor (Get-ForegroundColor ([Console]::Pass) $Config) `
         -NoNewline:$NoNewLine
 }
 
@@ -108,7 +106,7 @@ function Write-HostWarn (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     Write-Host $line `
-        -ForegroundColor (Get-FgColor ([ConsoleType]::Warn) $Config) `
+        -ForegroundColor (Get-ForegroundColor ([Console]::Warn) $Config) `
         -NoNewline:$NoNewLine
 }
 
@@ -118,6 +116,6 @@ function Write-HostFail (
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     Write-Host $line `
-        -ForegroundColor (Get-FgColor ([ConsoleType]::Fail) $Config) `
+        -ForegroundColor (Get-ForegroundColor ([Console]::Fail) $Config) `
         -NoNewline:$NoNewLine
 }
