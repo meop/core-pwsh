@@ -92,7 +92,7 @@ function Invoke-ScriptBlocksConcurrent (
         $scriptblock = $ScriptBlocks[0]
 
         if ($OnDequeue) {
-            Invoke-Command $OnDequeue -ArgumentList 0
+            Invoke-Command $OnDequeue -ArgumentList 0,1
         }
 
         if (-not $WhatIf.IsPresent) {
@@ -127,7 +127,7 @@ function Invoke-ScriptBlocksConcurrent (
         }
 
         if ($OnEnqueue) {
-            Invoke-Command $OnEnqueue -ArgumentList $i
+            Invoke-Command $OnEnqueue -ArgumentList $i,$jobsCount
         }
 
         if (-not $WhatIf.IsPresent) {
@@ -137,7 +137,7 @@ function Invoke-ScriptBlocksConcurrent (
 
     while ($jobsQueue.Count -gt 0) {
         if ($OnDequeue) {
-            Invoke-Command $OnDequeue -ArgumentList ($jobsCount - $jobsQueue.Count)
+            Invoke-Command $OnDequeue -ArgumentList ($jobsCount - $jobsQueue.Count),$jobsCount
         }
 
         $job = $jobsQueue.Dequeue()
