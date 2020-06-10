@@ -15,9 +15,25 @@ Set-PSReadlineOption -Colors @{
     Type      = [ConsoleColor]::Cyan
 }
 
-# Git prompt
-Invoke-SafeInstallModule posh-git 1
-Import-Module posh-git
+# $host.PrivateData.FormatAccentColor
+
+$host.PrivateData.DebugForegroundColor = 'DarkGreen'
+$host.PrivateData.DebugBackgroundColor = 'White'
+
+$host.PrivateData.ProgressForegroundColor = 'Black'
+$host.PrivateData.ProgressBackgroundColor = 'White'
+
+$host.PrivateData.VerboseForegroundColor = 'DarkBlue'
+$host.PrivateData.VerboseBackgroundColor = 'White'
+
+$host.PrivateData.WarningForegroundColor = 'DarkYellow'
+$host.PrivateData.WarningBackgroundColor = 'White'
+
+# $host.PrivateData.ErrorAccentColor
+
+$host.PrivateData.ErrorForegroundColor = 'DarkRed'
+$host.PrivateData.ErrorBackgroundColor = 'White'
+
 
 Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]))
 
@@ -62,6 +78,11 @@ $script:PWSH_COLOR_YELLOW = "`e[33m"
 $script:PWSH_COLOR_BLUE = "`e[34m"
 
 $script:PWSH_COLOR_RESET = "`e[0m"
+
+
+# Git prompt
+Invoke-SafeInstallModule posh-git 1
+Import-Module posh-git
 
 # $GitPromptSettings.DefaultPromptPrefix.ForegroundColor = [ConsoleColor]::DarkYellow
 # $GitPromptSettings.DefaultPromptPrefix.Text = ''
