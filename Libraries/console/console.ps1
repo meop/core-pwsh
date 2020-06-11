@@ -63,9 +63,7 @@ function Invoke-LineAsCommandOnConsole (
         -WorkingDir $WorkingDir `
         -Config $Config
 
-    Invoke-CommandsConcurrent `
-        -Commands $command `
-        -WhatIf:$WhatIf
+    Invoke-CommandsConcurrent -Commands $command -WhatIf:$WhatIf
 }
 
 # write-host

@@ -48,9 +48,8 @@ function Invoke-GitTfsCloneConcurrent (
             -Config $Config
     }
 
-    Invoke-CommandsConcurrent `
-        -Commands $commands `
-        -WhatIf:$WhatIf
+    $activity = 'Git TFS clone'
+    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
 }
 
 function Invoke-GitTfsCloneBatch (
@@ -106,9 +105,8 @@ function Invoke-GitTfsFetchConcurrent (
             -Config $Config
     }
 
-    Invoke-CommandsConcurrent `
-        -Commands $commands `
-        -WhatIf:$WhatIf
+    $activity = "Git TFS fetch"
+    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
 }
 
 function Invoke-GitTfsFetchBatch (

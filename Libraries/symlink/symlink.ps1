@@ -42,7 +42,6 @@ function Invoke-SymlinkGroup (
             -Config $Config
     }
 
-    Invoke-CommandsConcurrent `
-        -Commands $commands `
-        -WhatIf:$WhatIf
+    $activity = 'Symlink invoke'
+    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
 }

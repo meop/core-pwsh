@@ -107,8 +107,7 @@ function Invoke-RCloneGroup (
                 -Config $Config
         }
 
-        Invoke-CommandsConcurrent `
-            -Commands $commands `
-            -WhatIf:$WhatIf
+        $activity = 'RClone invoke'
+        Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
     }
 }

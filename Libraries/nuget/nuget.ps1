@@ -40,9 +40,8 @@ function Invoke-NugetRestoreConcurrent (
             -Config $Config
     }
 
-    Invoke-CommandsConcurrent `
-        -Commands $commands `
-        -WhatIf:$WhatIf
+    $activity = 'Nuget restore'
+    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
 }
 
 function Invoke-NugetRestoreBatch (

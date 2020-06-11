@@ -17,7 +17,5 @@ function Invoke-Vagrant (
         -Line $line `
         -WorkingDir $path
 
-    Invoke-CommandsConcurrent `
-        -Commands $command `
-        -WhatIf:$WhatIf
+    Invoke-CommandsConcurrent -Commands $command -WhatIf:$WhatIf
 }

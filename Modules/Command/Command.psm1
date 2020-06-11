@@ -4,16 +4,11 @@ function expandCommand (
     $line = $Command.Line
     $workingDir = $Command.WorkingDir
 
-    $expanded =
-    if ($workingDir) {
-        if (Test-Path $workingDir) {
-            "Push-Location '$workingDir'; $line; Pop-Location;"
-        } else {
-            "Write-Output 'skipping - path does not exist: $workingDir'"
-        }
-    } else {
-        $line
-    }
+    $expanded = $workingDir `
+        ? (Test-Path $workingDir) `
+            ? "Push-Location '$workingDir'; $line; Pop-Location;" `
+            : "Write-Output 'skipping - path does not exist: $workingDir'"
+        : $line
 
     $expanded
 }
@@ -37,6 +32,9 @@ function printCommand (
 
 function Invoke-CommandsConcurrent (
     [Parameter(Mandatory = $false)] [Command[]] $Commands
+    , [Parameter(Mandatory = $false)] [scriptblock[]] $OnEnqueues
+    , [Parameter(Mandatory = $false)] [scriptblock[]] $OnDequeues
+    , [Parameter(Mandatory = $false)] [string] $Activity
     , [Parameter(Mandatory = $false)] [int] $ThrottleLimit = 8
     , [Parameter(Mandatory = $false)] [int] $PollingDelayInMs = 100
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
@@ -50,8 +48,8 @@ function Invoke-CommandsConcurrent (
         )
     }
 
-    $onEnqueue = {
-        param($index)
+    $OnEnqueue = {
+        param ($index, $count)
 
         $command = $Commands[$index]
         if ($WhatIf.IsPresent) {
@@ -59,17 +57,30 @@ function Invoke-CommandsConcurrent (
         }
     }
 
-    $onDequeue = {
-        param($index)
+    if ($OnEnqueues) {
+        $OnEnqueues += , $OnEnqueue
+    } else {
+        $OnEnqueues = @(, $OnEnqueue)
+    }
+
+    $OnDequeue = {
+        param ($index, $count)
 
         $command = $Commands[$index]
         printCommand -Command $command
     }
 
+    if ($OnDequeues) {
+        $OnDequeues += , $OnDequeue
+    } else {
+        $OnDequeues = @(, $OnDequeue)
+    }
+
     Invoke-ScriptBlocksConcurrent `
         -ScriptBlocks $scriptblocks `
-        -OnEnqueue $onEnqueue `
-        -OnDequeue $onDequeue `
+        -OnEnqueues $OnEnqueues `
+        -OnDequeues $OnDequeues `
+        -Activity $Activity `
         -ThrottleLimit $ThrottleLimit `
         -PollingDelayInMs $PollingDelayInMs`
         -WhatIf:$WhatIf
@@ -78,8 +89,9 @@ function Invoke-CommandsConcurrent (
 function Invoke-ScriptBlocksConcurrent (
     [Parameter(Mandatory = $false)] [scriptblock[]] $ScriptBlocks
     , [Parameter(Mandatory = $false)] [object[]] $ArgumentLists
-    , [Parameter(Mandatory = $false)] [scriptblock] $OnEnqueue
-    , [Parameter(Mandatory = $false)] [scriptblock] $OnDequeue
+    , [Parameter(Mandatory = $false)] [scriptblock[]] $OnEnqueues
+    , [Parameter(Mandatory = $false)] [scriptblock[]] $OnDequeues
+    , [Parameter(Mandatory = $false)] [string] $Activity
     , [Parameter(Mandatory = $false)] [int] $ThrottleLimit = 8
     , [Parameter(Mandatory = $false)] [int] $PollingDelayInMs = 100
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
@@ -91,8 +103,10 @@ function Invoke-ScriptBlocksConcurrent (
     if ($ScriptBlocks.Length -eq 1) {
         $scriptblock = $ScriptBlocks[0]
 
-        if ($OnDequeue) {
-            Invoke-Command $OnDequeue -ArgumentList 0,1
+        if ($OnDequeues) {
+            foreach ($callback in $OnDequeues) {
+                Invoke-Command $callback -ArgumentList 0, 1
+            }
         }
 
         if (-not $WhatIf.IsPresent) {
@@ -108,6 +122,10 @@ function Invoke-ScriptBlocksConcurrent (
         }
 
         return
+    }
+
+    if ($Activity) {
+        $Activity = "Activity: $Activity .."
     }
 
     $jobsCount = $ScriptBlocks.Length
@@ -126,21 +144,31 @@ function Invoke-ScriptBlocksConcurrent (
             $props.Add('ThrottleLimit', $ThrottleLimit)
         }
 
-        if ($OnEnqueue) {
-            Invoke-Command $OnEnqueue -ArgumentList $i,$jobsCount
-        }
-
         if (-not $WhatIf.IsPresent) {
             $jobsQueue.Enqueue((Start-ThreadJob @props))
         }
+
+        if ($OnEnqueues) {
+            foreach ($callback in $OnEnqueues) {
+                Invoke-Command $callback -ArgumentList $i, $jobsCount
+            }
+        }
+    }
+
+    if ($jobsCount -gt 0 -and $Activity) {
+        Write-Progress -Activity $Activity -Status "Status: 0 / $jobsCount complete .."
     }
 
     while ($jobsQueue.Count -gt 0) {
-        if ($OnDequeue) {
-            Invoke-Command $OnDequeue -ArgumentList ($jobsCount - $jobsQueue.Count),$jobsCount
-        }
-
         $job = $jobsQueue.Dequeue()
+
+        $jobsNumber = $jobsCount - $jobsQueue.Count
+
+        if ($OnDequeues) {
+            foreach ($callback in $OnDequeues) {
+                Invoke-Command $callback -ArgumentList ($jobsNumber - 1), $jobsCount
+            }
+        }
 
         $done = $false
         while (-not $done) {
@@ -159,6 +187,14 @@ function Invoke-ScriptBlocksConcurrent (
                 $job | Remove-Job
             }
         }
+
+        if ($Activity) {
+            Write-Progress -Activity $Activity -Status "Status: $jobsNumber / $jobsCount complete .."
+        }
+    }
+
+    if ($jobsCount -gt 0 -and $Activity) {
+        Write-Progress -Activity $Activity -Completed
     }
 }
 
