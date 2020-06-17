@@ -1,27 +1,21 @@
-function Import-AssetCsv (
-    [Parameter(Mandatory = $true)] [string] $Path
-) {
-    $path = ConvertTo-CrossPlatformPathFormat `
-        ($Path.EndsWith('.csv') ? $Path : "$Path.csv")
-
-    (Test-Path $path) ? (Import-Csv $path) : $null
-}
-
 function Import-AssetList (
     [Parameter(Mandatory = $true)] [string] $Path
+    , [Parameter(Mandatory = $false)] [string] $Extension = '.txt'
+    , [Parameter(Mandatory = $false)] [string] $CommentedLinePrefix = ';'
+    , [Parameter(Mandatory = $false)] [bool] $ValuesArePaths = $true
 ) {
     $path = ConvertTo-CrossPlatformPathFormat `
-        ($Path.EndsWith('.txt') ? $Path : "$Path.txt")
+        ($Path.EndsWith($Extension) ? $Path : "$Path$Extension")
 
     if (Test-Path $path) {
         $items = Get-Content $path | Where-Object {
-            $_.Trim() -ne '' -and -not $_.StartsWith(';')
+            $_.Trim() -ne '' -and -not $_.StartsWith($CommentedLinePrefix)
         }
     }
 
     if ($items) {
         $items | ForEach-Object {
-            (ConvertTo-CrossPlatformPathFormat $_)
+            $ValuesArePaths ? (ConvertTo-CrossPlatformPathFormat $_) : $_
         }
     } else {
         Write-Debug "no viable items found in: $path"
@@ -29,16 +23,16 @@ function Import-AssetList (
     }
 }
 
-function Update-AssetCacheFile (
+function Update-AssetList (
     [Parameter(Mandatory = $true)] [string] $Include
     , [Parameter(Mandatory = $true)] [string[]] $SearchPaths
     , [Parameter(Mandatory = $true)] [string] $OutFilePath
-    , [Parameter(Mandatory = $false)] [switch] $StoreParentPath
+    , [Parameter(Mandatory = $false)] [bool] $StoreParentPath = $false
 ) {
     $files = @()
     $SearchPaths | ForEach-Object {
         (Invoke-FindFilePathsMatchingPattern -Include $Include -Path $_ -Depth 100) | ForEach-Object {
-            $path = $StoreParentPath.IsPresent ? (Split-Path $_) : $_
+            $path = $StoreParentPath ? (Split-Path $_) : $_
             $files += ConvertTo-CrossPlatformPathFormat $path
         }
     }
@@ -46,7 +40,7 @@ function Update-AssetCacheFile (
     $files | Out-File -FilePath $OutFilePath
 }
 
-function Get-AssetBatchFilePaths (
+function Get-AssetListBatch (
     [Parameter(Mandatory = $true)] [string] $Path
     , [Parameter(Mandatory = $false)] [string[]] $Filters
     , [Parameter(Mandatory = $false)] [switch] $UnionFilters
@@ -60,7 +54,7 @@ function Get-AssetBatchFilePaths (
         -UnionFilters:$UnionFilters
 }
 
-function Get-AssetGroupFilePaths (
+function Get-AssetListGroup (
     [Parameter(Mandatory = $true)] [string] $Path
     , [Parameter(Mandatory = $false)] [string] $StartName
     , [Parameter(Mandatory = $false)] [string] $StopName

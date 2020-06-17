@@ -1,13 +1,13 @@
-# setup routines
+# config file
+config.yml
+
+# initializer routines
 **/Initializers/*
 
-!**/Initializers/modules.ps1
-!**/Initializers/ssh.ps1
-
-
-# officially installed Modules
+# comes with PowerShell
 **/Modules/*
 
+# except for bundled modules
 !**/Modules/Array
 !**/Modules/Command
 !**/Modules/Console

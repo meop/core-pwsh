@@ -1,4 +1,4 @@
-function Get-GitTfsCloneCommand (
+function Get-GitTfsCloneLine (
     [Parameter(Mandatory = $true)] [string] $Trunk
     , [Parameter(Mandatory = $false)] [switch] $FullClone
     , [Parameter(Mandatory = $false)] [string] $IgnoreRegex
@@ -21,9 +21,7 @@ function Get-GitTfsCloneCommand (
         "git tfs $operation $uri $/$Trunk $cloneDir --branches=none $_changeset $_ignoreregex --workspace=$workspaceDir"
     }
 
-    Get-ConsoleCommand `
-        -Line $line `
-        -Config $Config
+    $line
 }
 
 function Invoke-GitTfsCloneConcurrent (
@@ -39,54 +37,36 @@ function Invoke-GitTfsCloneConcurrent (
     $commands = @()
 
     foreach ($trunk in $Trunks) {
-        $commands += Get-GitTfsCloneCommand `
-            -Trunk $trunk `
-            -FullClone:$FullClone `
-            -IgnoreRegex $IgnoreRegex `
-            -ChangeSet $ChangeSet `
-            -WhatIf:$WhatIf `
+        $commands += Get-ConsoleCommand `
+            -Line (Get-GitTfsCloneLine `
+                -Trunk $trunk `
+                -FullClone:$FullClone `
+                -IgnoreRegex $IgnoreRegex `
+                -ChangeSet $ChangeSet `
+                -WhatIf:$WhatIf `
+                -Config $Config) `
             -Config $Config
     }
 
     $activity = 'Git TFS clone'
-    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
+    Invoke-CommandsConcurrent `
+        -Commands $commands `
+        -Activity $activity `
+        -WhatIf:$WhatIf
 }
 
-function Invoke-GitTfsCloneBatch (
-    [Parameter(Mandatory = $false)] [string[]] $Filters
-    , [Parameter(Mandatory = $false)] [switch] $UnionFilters
-    , [Parameter(Mandatory = $false)] [switch] $FullClone
-    , [Parameter(Mandatory = $false)] [string] $IgnoreRegex
-    , [Parameter(Mandatory = $false)] [int] $ChangeSet
+function Get-GitTfsFetchLine (
+    [Parameter(Mandatory = $false)] [string] $Repo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    Invoke-GitTfsCloneConcurrent `
-        -Trunks (
-            Get-TfsReposBatchFilePaths `
-                -Filters $Filters `
-                -UnionFilters:$UnionFilters
-        ) `
-        -FullClone:$FullClone `
-        -IgnoreRegex $IgnoreRegex `
-        -ChangeSet $ChangeSet `
-        -WhatIf:$WhatIf `
-        -Config $Config
-}
+    if (-not $Repo) { return }
 
-function Get-GitTfsFetchCommand (
-    [Parameter(Mandatory = $true)] [string] $Repo
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
     $line = (-not (Test-Path $Repo) -and -not $WhatIf.IsPresent) `
         ? "Write-Output 'skipping - repo not found: $Repo; did you clone yet?'" `
         : "git tfs fetch"
 
-    Get-ConsoleCommand `
-        -Line $line `
-        -WorkingDir $Repo `
-        -Config $Config
+    $line
 }
 
 function Invoke-GitTfsFetchConcurrent (
@@ -99,46 +79,37 @@ function Invoke-GitTfsFetchConcurrent (
     $commands = @()
 
     foreach ($repo in $Repos) {
-        $commands += Get-GitTfsFetchCommand `
-            -Repo $repo `
-            -WhatIf:$WhatIf `
+        $commands += Get-ConsoleCommand `
+            -Line (Get-GitTfsFetchLine `
+                -Repo $repo `
+                -WhatIf:$WhatIf `
+                -Config $Config) `
+            -WorkingDir $Repo `
             -Config $Config
     }
 
     $activity = "Git TFS fetch"
-    Invoke-CommandsConcurrent -Commands $commands -Activity $activity -WhatIf:$WhatIf
+    Invoke-CommandsConcurrent `
+        -Commands $commands `
+        -Activity $activity `
+        -WhatIf:$WhatIf
 }
 
-function Invoke-GitTfsFetchBatch (
-    [Parameter(Mandatory = $false)] [string[]] $Filters
-    , [Parameter(Mandatory = $false)] [switch] $UnionFilters
+function Invoke-GitTfsRebaseWithRetriesGroup (
+    [Parameter(Mandatory = $false)] [string[]] $Paths
+    , [Parameter(Mandatory = $false)] [string] $TargetBranch = 'tfs/default'
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    Invoke-GitTfsFetchConcurrent `
-        -Repos (
-            Get-GitReposBatchFilePaths `
-                -Filters $Filters `
-                -UnionFilters:$UnionFilters
-        ) `
-        -WhatIf:$WhatIf `
-        -Config $Config
-}
+    if (-not $paths) { return }
 
-function Invoke-GitTfsFetchGroup (
-    [Parameter(Mandatory = $true)] [string] $GroupName
-    , [Parameter(Mandatory = $false)] [string] $StartName
-    , [Parameter(Mandatory = $false)] [string] $StopName
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    Invoke-GitTfsFetchConcurrent `
-        -Repos (
-            Get-GitReposGroupFilePaths `
-                -GroupName $GroupName `
-                -StartName $StartName `
-                -StopName $StopName
-        ) `
-        -WhatIf:$WhatIf `
-        -Config $Config
+    foreach ($path in $paths) {
+        if (-not (Test-Path $path)) { continue }
+
+        Invoke-GitRebaseWithRetries `
+            -RepoDir $path `
+            -TargetBranch $TargetBranch `
+            -WhatIf:$WhatIf `
+            -Config $Config
+    }
 }

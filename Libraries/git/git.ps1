@@ -98,29 +98,3 @@ function Invoke-GitRebaseWithRetries (
 
     if (Test-Path $outFilePath) { Remove-Item $outFilePath }
 }
-
-function Invoke-GitRebaseWithRetriesGroup (
-    [Parameter(Mandatory = $true)] [string] $GroupName
-    , [Parameter(Mandatory = $false)] [string] $StartName
-    , [Parameter(Mandatory = $false)] [string] $StopName
-    , [Parameter(Mandatory = $false)] [string] $TargetBranch = 'tfs/default'
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    $paths = Get-GitReposGroupFilePaths `
-        -GroupName $GroupName `
-        -StartName $StartName `
-        -StopName $StopName
-
-    if (-not $paths) { return }
-
-    foreach ($path in $paths) {
-        if (-not (Test-Path $path)) { continue }
-
-        Invoke-GitRebaseWithRetries `
-            -RepoDir $path `
-            -TargetBranch $TargetBranch `
-            -WhatIf:$WhatIf `
-            -Config $Config
-    }
-}

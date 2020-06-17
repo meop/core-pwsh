@@ -20,11 +20,18 @@ Note: If you already have files there that you want to keep, this project can in
 ./config/powershell
 
 
+# Config
+
+Copy the example config and edit as desired
+
+> pseudo: cp ./Libraries.example/config.yml ./config.yml
+
+
 # [Optional] Use included prompt
 
-If you want to use the provided prompt, or want to modify, or create your own.. you can then copy it into ./Initializers
+Copy the example prompt and edit as desired
 
-> pseudo: cp ./prompt.ps1 ./Initializers/prompt.ps1
+> pseudo: cp ./Initializers.example/prompt.ps1 ./Initializers/prompt.ps1
 
 ## Colors
 

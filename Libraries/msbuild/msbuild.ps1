@@ -4,33 +4,6 @@ class VsToolFilePaths {
     [string] $SqlPackage
 }
 
-function Get-VsToolFilePathsLatest (
-    [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    [VsToolFilePaths] @{
-        VsDevCmd    = $Config['vsDevCmd']['filePath']['latest']
-        MsBuild     = $Config['msBuild']['filePath']['latest']
-        SqlPackage  = $Config['sqlPackage']['filePath']['latest']
-    }
-}
-
-function Get-VsToolFilePathsProject (
-    [Parameter(Mandatory = $true)] [string] $Project
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    $projectMap = (Get-MSBuildProjectsMap) | Where-Object {
-        $_.Project.ToLowerInvariant().Contains($Project.ToLowerInvariant())
-    }
-
-    $vsVersion = $projectMap ? $projectMap.VsVersion : 'latest'
-
-    [VsToolFilePaths] @{
-        VsDevCmd    = $Config['vsDevCmd']['filePath'][$vsVersion]
-        MsBuild     = $Config['msBuild']['filePath'][$vsVersion]
-        SqlPackage  = $Config['sqlPackage']['filePath'][$vsVersion]
-    }
-}
-
 class MsBuildParameters {
     [string] $Action
     [string] $Verbosity
@@ -69,8 +42,8 @@ function Get-MsBuildParametersDefault (
 
 function Invoke-MsBuild (
     [Parameter(Mandatory = $true)] [string] $Project
+    , [Parameter(Mandatory = $true)] [VsToolFilePaths] $VsToolFilePaths
     , [Parameter(Mandatory = $false)] [MsBuildParameters] $MsBuildParameters
-    , [Parameter(Mandatory = $false)] [VsToolFilePaths] $VsToolFilePaths
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -81,10 +54,6 @@ function Invoke-MsBuild (
 
     if (-not $MsBuildParameters) {
         $MsBuildParameters = Get-MsBuildParametersDefault -Config $Config
-    }
-
-    if (-not $VsToolFilePaths) {
-        $VsToolFilePaths = Get-VsToolFilePathsProject -Project $Project -Config $Config
     }
 
     $baseLogFileDir = ConvertTo-BackwardSlashes $MsBuildParameters.LogsDir
@@ -164,50 +133,4 @@ function Invoke-MsBuild (
             -Config $Config
     }
     Write-Host
-}
-
-function Invoke-MsBuildBatch (
-    [Parameter(Mandatory = $false)] [string[]] $Filters
-    , [Parameter(Mandatory = $false)] [switch] $UnionFilters
-    , [Parameter(Mandatory = $false)] [MsBuildParameters] $MsBuildParameters
-    , [Parameter(Mandatory = $false)] [VsToolFilePaths] $VsToolFilePaths
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    $items = Get-MsBuildProjectsBatchFilePaths `
-        -Filters $Filters `
-        -UnionFilters:$UnionFilters
-
-    foreach ($item in $items) {
-        Invoke-MsBuild `
-            -Project $item `
-            -MsBuildParameters $MsBuildParameters `
-            -VsToolFilePaths $VsToolFilePaths `
-            -WhatIf:$WhatIf `
-            -Config $Config
-    }
-}
-
-function Invoke-MsBuildGroup (
-    [Parameter(Mandatory = $true)] [string] $GroupName
-    , [Parameter(Mandatory = $false)] [string] $StartName
-    , [Parameter(Mandatory = $false)] [string] $StopName
-    , [Parameter(Mandatory = $false)] [MsBuildParameters] $MsBuildParameters
-    , [Parameter(Mandatory = $false)] [VsToolFilePaths] $VsToolFilePaths
-    , [Parameter(Mandatory = $false)] [switch] $WhatIf
-    , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
-) {
-    $items = Get-MsBuildProjectsGroupFilePaths `
-        -GroupName $GroupName `
-        -StartName $StartName `
-        -StopName $StopName
-
-    foreach ($item in $items) {
-        Invoke-MsBuild `
-            -Project $item `
-            -MsBuildParameters $MsBuildParameters `
-            -VsToolFilePaths $VsToolFilePaths `
-            -WhatIf:$WhatIf `
-            -Config $Config
-    }
 }

@@ -10,13 +10,14 @@ enum DockerOption {
 function Invoke-Docker (
     [Parameter(Mandatory = $true)] [DockerOption] $Option
     , [Parameter(Mandatory = $true)] [string] $ContainerName
+    , [Parameter(Mandatory = $false)] [string[]] $ContainerArgs
+    , [Parameter(Mandatory = $true)] [string] $ImageName
+    , [Parameter(Mandatory = $false)] [string] $ImageTag
+    , [Parameter(Mandatory = $false)] [string[]] $ImageArgs
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $containerName = $ContainerName.ToLowerInvariant()
-    $containerImage = Get-DockerContainerImage $containerName
-    $containerImageTag = $containerImage.ImageTag
-    $containerImageArgs = $containerImage.ImageArgs
 
     function Exec (
         [string[]] $Arguments
@@ -34,12 +35,14 @@ function Invoke-Docker (
     function Run (
         [string[]] $TerminalArguments
     ) {
+        $imageNameAndTag = $ImageTag ? "$($ImageName):$ImageTag" : $ImageName
+
         "docker run --rm" +
             " $($TerminalArguments -join ' ')" +
             " --name $containerName" +
-            " $($(Get-DockerContainerArguments $containerName) -join ' ')" +
-            " $containerImageTag" +
-            " $($containerImageArgs -join ' ')"
+            " $($ContainerArgs -join ' ')" +
+            " $imageNameAndTag" +
+            " $($ImageArgs -join ' ')"
     }
 
     switch ($Option) {

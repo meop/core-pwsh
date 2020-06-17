@@ -58,12 +58,12 @@ function Invoke-LineAsCommandOnConsole (
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $command = Get-ConsoleCommand `
-        -Line $Line `
-        -WorkingDir $WorkingDir `
-        -Config $Config
-
-    Invoke-CommandsConcurrent -Commands $command -WhatIf:$WhatIf
+    Invoke-CommandsConcurrent `
+        -Commands (Get-ConsoleCommand `
+            -Line $Line `
+            -WorkingDir $WorkingDir `
+            -Config $Config) `
+        -WhatIf:$WhatIf
 }
 
 # write-host
