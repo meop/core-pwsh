@@ -1,5 +1,5 @@
 # config file
-config.yml
+/config.yml
 
 # initializer routines
 **/Initializers/*

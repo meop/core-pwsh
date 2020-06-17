@@ -24,7 +24,7 @@ Note: If you already have files there that you want to keep, this project can in
 
 Copy the example config and edit as desired
 
-> pseudo: cp ./Libraries.example/config.yml ./config.yml
+> pseudo: cp ./config.example.yml ./config.yml
 
 
 # [Optional] Use included prompt

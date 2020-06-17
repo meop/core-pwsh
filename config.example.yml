@@ -1,0 +1,76 @@
+console:
+  color:
+    ask: 'blue'
+    cmd: 'magenta'
+    info: 'cyan'
+    pass: 'green'
+    warn: 'yellow'
+    fail: 'red'
+
+fact:
+  uri: https://api.icndb.com/jokes/random
+
+git:
+  searchPaths:
+    - d:\gtfs
+
+gitTfs:
+  cloneDir: d:\gtfs
+  workspaceDir: d:\ws
+
+msBuild:
+  default:
+    action: Build
+    verbosity: Quiet
+    maxThreads: 8
+    buildConfig: Debug
+    buildInParallel: true
+    useEnv: true
+    useSharedCompilation: false
+    logsPath: d:\logs\msbuild
+  print:
+    warnings: false
+    errors: true
+  filePath:
+    2015: C:\Program Files (x86)\MsBuild\14.0\Bin\MSBuild.exe
+    2017: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MsBuild\15.0\Bin\MSBuild.exe
+    2019: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MsBuild\15.0\Bin\MSBuild.exe
+    latest: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MsBuild\Current\Bin\MSBuild.exe
+  searchPaths:
+    - d:\gtfs
+
+sqlPackage:
+  filePath:
+    2017: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\Extensions\Microsoft\SQLDB\DAC\140\sqlpackage.exe
+    latest: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\Extensions\Microsoft\SQLDB\DAC\150\sqlpackage.exe
+
+tfs:
+  cloneDir: d:\tfs
+  uri: https://tfs.prd.costargroup.com/CoStarCollection
+
+vsDevCmd:
+  filePath:
+    2015: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\VsDevCmd.bat
+    2017: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat
+    2019: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat
+    latest: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat
+
+coStar:
+  domain:
+    user: us\mporter
+  host2000:
+    sourceDir: \\dcdmpprd500\productdeploy\psf\Main\CoStarHost_2000
+    targetDir: d:\suite\CoStarHost_2000
+  lookupServiceIndexes:
+    sourceDir: \\CS01APPXTST510\costar\ManagedIndexes
+    targetDir: d:\suite\LookupServiceIndexes
+  neo4j:
+    rClone:
+      local:
+        sourceDir: \\cs01fileprd001\neo4j
+        targetDir: d:\neo4j\csvs
+      sftp:
+        sourceDir: \\cs01fileprd001\neo4j
+        targetDir: /opt/neo4j/csvs
+  suite:
+    cloneDir: d:\git\@costar
