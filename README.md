@@ -27,6 +27,15 @@ Copy the example config and edit as desired
 > pseudo: cp ./config.example.yml ./config.yml
 
 
+# Initializers
+
+This is a place to include files to dot source, ie. load other modules on the system
+
+A few examples are provided, ie.:
+
+> pseudo: cp ./Initializers.example/modules.ps1 ./Initializers/modules.ps1
+
+
 # [Optional] Use included prompt
 
 Copy the example prompt and edit as desired
