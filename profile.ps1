@@ -58,11 +58,17 @@ Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos'
 
 Invoke-SafeAppendToModulePath "$PSScriptRoot/Modules"
 
-$f = "$PSScriptRoot/Libraries/source.ps1"
-if (Test-Path $f) { . $f }
-
 $d = "$PSScriptRoot/Initializers"
 if (Test-Path $d) {
     Get-ChildItem -Path $d -Filter '*.ps1' |
     ForEach-Object { . $_.FullName }
 }
+
+$d = "$PSScriptRoot/Libraries"
+if (Test-Path $d) {
+    Get-ChildItem -Path $d -Filter '*.ps1' |
+    ForEach-Object { . $_.FullName }
+}
+
+$f = "$PSScriptRoot/config.ps1"
+if (Test-Path $f) { . $f }

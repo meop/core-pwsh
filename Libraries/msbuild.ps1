@@ -40,9 +40,19 @@ function Get-MsBuildParametersDefault (
     }
 }
 
+function Get-MsBuildVsToolFilePathsDefault (
+    [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
+) {
+    [VsToolFilePaths] @{
+        VsDevCmd   = $Config['vsDevCmd']['filePath']['latest']
+        MsBuild    = $Config['msBuild']['filePath']['latest']
+        SqlPackage = $Config['sqlPackage']['filePath']['latest']
+    }
+}
+
 function Invoke-MsBuild (
     [Parameter(Mandatory = $true)] [string] $Project
-    , [Parameter(Mandatory = $true)] [VsToolFilePaths] $VsToolFilePaths
+    , [Parameter(Mandatory = $false)] [VsToolFilePaths] $VsToolFilePaths
     , [Parameter(Mandatory = $false)] [MsBuildParameters] $MsBuildParameters
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
@@ -50,6 +60,10 @@ function Invoke-MsBuild (
     if (-not (Test-Path $Project) -and -not $WhatIf.IsPresent) {
         Write-Output "skipping - project not found: $Project"
         return
+    }
+
+    if (-not $VsToolFilePaths) {
+        $VsToolFilePaths = Get-MsBuildVsToolFilePathsDefault -Config $Config
     }
 
     if (-not $MsBuildParameters) {

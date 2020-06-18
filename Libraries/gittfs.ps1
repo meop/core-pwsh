@@ -1,12 +1,12 @@
 function Get-GitTfsCloneLine (
     [Parameter(Mandatory = $true)] [string] $Trunk
+    , [Parameter(Mandatory = $true)] [string] $Uri
     , [Parameter(Mandatory = $false)] [switch] $FullClone
     , [Parameter(Mandatory = $false)] [string] $IgnoreRegex
     , [Parameter(Mandatory = $false)] [int] $ChangeSet
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    $uri = $Config['tfs']['uri']
     $cloneDir = ConvertTo-CrossPlatformPathFormat "$($Config['gitTfs']['cloneDir'])/$Trunk"
     $workspaceDir = ConvertTo-CrossPlatformPathFormat "$($Config['gitTfs']['workspaceDir'])/$Trunk"
 
@@ -18,7 +18,7 @@ function Get-GitTfsCloneLine (
         $_changeset = $ChangeSet ? "--changeset=$ChangeSet" : ""
         $_ignoreregex = $IgnoreRegex ? "--ignore-regex=$IgnoreRegex" : ""
 
-        "git tfs $operation $uri $/$Trunk $cloneDir --branches=none $_changeset $_ignoreregex --workspace=$workspaceDir"
+        "git tfs $operation $Uri $/$Trunk $cloneDir --branches=none $_changeset $_ignoreregex --workspace=$workspaceDir"
     }
 
     $line
@@ -26,6 +26,7 @@ function Get-GitTfsCloneLine (
 
 function Invoke-GitTfsCloneConcurrent (
     [Parameter(Mandatory = $false)] [string[]] $Trunks
+    , [Parameter(Mandatory = $true)] [string] $Uri
     , [Parameter(Mandatory = $false)] [switch] $FullClone
     , [Parameter(Mandatory = $false)] [string] $IgnoreRegex
     , [Parameter(Mandatory = $false)] [int] $ChangeSet
@@ -40,6 +41,7 @@ function Invoke-GitTfsCloneConcurrent (
         $commands += Get-ConsoleCommand `
             -Line (Get-GitTfsCloneLine `
                 -Trunk $trunk `
+                -Uri $Uri `
                 -FullClone:$FullClone `
                 -IgnoreRegex $IgnoreRegex `
                 -ChangeSet $ChangeSet `
@@ -88,7 +90,7 @@ function Invoke-GitTfsFetchConcurrent (
             -Config $Config
     }
 
-    $activity = "Git TFS fetch"
+    $activity = 'Git TFS fetch'
     Invoke-CommandsConcurrent `
         -Commands $commands `
         -Activity $activity `

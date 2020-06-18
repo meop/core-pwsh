@@ -1,5 +1,5 @@
-# config file
-/config.yml
+# ignore so people can create their own
+**/config.yml
 
 # initializer routines
 **/Initializers/*
