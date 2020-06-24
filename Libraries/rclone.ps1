@@ -37,7 +37,6 @@ function Get-RCloneLine (
 
 function Invoke-RCloneBackup (
     [Parameter(Mandatory = $true)] [RCloneBackup] $Backup
-    , [Parameter(Mandatory = $false)] [string] $Filter
     , [Parameter(Mandatory = $false)] [switch] $Restore
     , [Parameter(Mandatory = $false)] [switch] $CopyLinks
     , [Parameter(Mandatory = $false)] [switch] $DryRun
@@ -47,25 +46,9 @@ function Invoke-RCloneBackup (
 ) {
     if (-not $Backup.Items) { return }
 
-    $items =
-    if ($Filter) {
-        $filter = $Filter.ToLowerInvariant()
-        function isInFilter ([string] $s) {
-            $s -and $s.Contains($filter)
-        }
-
-        $backup.Items | Where-Object {
-            (isInFilter $_.Path) -or
-            (isInFilter $_.NewPath)
-        }
-    } else {
-        $backup.Items
-    }
-
-
     $commands = @()
 
-    foreach ($item in $items) {
+    foreach ($item in $Backup.Items) {
         $path =
             $ExecutionContext.InvokeCommand.ExpandString(
                 $item.Path
@@ -105,8 +88,7 @@ function Invoke-RCloneBackup (
                 -Origination $origination `
                 -Destination $destination `
                 -Flags $flags `
-                -AsSudo:$AsSudo `
-                -Config $Config) `
+                -AsSudo:$AsSudo) `
             -Config $Config
     }
 
