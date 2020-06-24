@@ -18,7 +18,7 @@ class MsBuildParameters {
     [bool] $PrintWarnings
 }
 
-function Get-MsBuildParametersDefault (
+function Get-MsBuildDefaultParameters (
     [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     $msBuild = $Config['msBuild']
@@ -40,7 +40,7 @@ function Get-MsBuildParametersDefault (
     }
 }
 
-function Get-MsBuildVsToolFilePathsDefault (
+function Get-MsBuildDefaultVsToolFilePaths (
     [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
     [VsToolFilePaths] @{
@@ -63,11 +63,11 @@ function Invoke-MsBuild (
     }
 
     if (-not $VsToolFilePaths) {
-        $VsToolFilePaths = Get-MsBuildVsToolFilePathsDefault -Config $Config
+        $VsToolFilePaths = Get-MsBuildDefaultVsToolFilePaths -Config $Config
     }
 
     if (-not $MsBuildParameters) {
-        $MsBuildParameters = Get-MsBuildParametersDefault -Config $Config
+        $MsBuildParameters = Get-MsBuildDefaultParameters -Config $Config
     }
 
     $baseLogFileDir = ConvertTo-BackwardSlashes $MsBuildParameters.LogsDir
