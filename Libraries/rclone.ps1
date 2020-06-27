@@ -9,6 +9,8 @@ class RCloneBackupItem {
     [RCloneOperation] $Operation
     [string] $Path
     [string] $NewPath
+    [bool] $CopyLinks
+    [bool] $AsSudo
 }
 
 class RCloneBackup {
@@ -22,13 +24,13 @@ function Get-RCloneLine (
     [Parameter(Mandatory = $true)] [RCloneOperation] $Operation
     , [Parameter(Mandatory = $true)] [string] $Origination
     , [Parameter(Mandatory = $true)] [string] $Destination
+    , [Parameter(Mandatory = $false)] [bool] $AsSudo
     , [Parameter(Mandatory = $false)] [string] $Flags
-    , [Parameter(Mandatory = $false)] [switch] $AsSudo
 ) {
     $line = "rclone $Operation $Origination $Destination"
-    if ($Flags) { $line += " $Flags" }
+    if ($Flags) { $line += $Flags }
 
-    if ($AsSudo.IsPresent) {
+    if ($AsSudo) {
         $line = Format-AsSudo $line
     }
 
@@ -38,9 +40,6 @@ function Get-RCloneLine (
 function Invoke-RCloneBackup (
     [Parameter(Mandatory = $true)] [RCloneBackup] $Backup
     , [Parameter(Mandatory = $false)] [switch] $Restore
-    , [Parameter(Mandatory = $false)] [switch] $CopyLinks
-    , [Parameter(Mandatory = $false)] [switch] $DryRun
-    , [Parameter(Mandatory = $false)] [switch] $AsSudo
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
@@ -55,8 +54,7 @@ function Invoke-RCloneBackup (
             )
 
         $flags = ''
-        if ($CopyLinks.IsPresent) { $flags += ' --copy-links' }
-        if ($DryRun.IsPresent) { $flags += ' --dry-run' }
+        if ($item.CopyLinks) { $flags += ' --copy-links' }
 
         $localPath = ConvertTo-CrossPlatformPathFormat $path
 
@@ -87,8 +85,8 @@ function Invoke-RCloneBackup (
                 -Operation $item.Operation `
                 -Origination $origination `
                 -Destination $destination `
-                -Flags $flags `
-                -AsSudo:$AsSudo) `
+                -AsSudo $item.AsSudo `
+                -Flags $flags) `
             -Config $Config
     }
 
