@@ -5,19 +5,18 @@ enum RCloneOperation {
     sync
 }
 
-class RCloneBackupItem {
+class RCloneParameters {
+    [string] $Source
+    [string] $Remote
+    [string] $RemotePath
+}
+
+class RCloneItem {
     [RCloneOperation] $Operation
     [string] $Path
     [string] $NewPath
     [bool] $CopyLinks
     [bool] $AsSudo
-}
-
-class RCloneBackup {
-    [string] $Source
-    [string] $Remote
-    [string] $RemotePath
-    [RCloneBackupItem[]] $Items
 }
 
 function Get-RCloneLine (
@@ -37,17 +36,18 @@ function Get-RCloneLine (
     $line
 }
 
-function Invoke-RCloneBackup (
-    [Parameter(Mandatory = $true)] [RCloneBackup] $Backup
+function Invoke-RClone (
+    [Parameter(Mandatory = $true)] [RCloneParameters] $RCloneParameters
+    , [Parameter(Mandatory = $false)] [RCloneItem[]] $RCloneItems
     , [Parameter(Mandatory = $false)] [switch] $Restore
     , [Parameter(Mandatory = $false)] [switch] $WhatIf
     , [Parameter(Mandatory = $false)] $Config = (Get-ProfileConfig)
 ) {
-    if (-not $Backup.Items) { return }
+    if (-not $RCloneItems) { return }
 
     $commands = @()
 
-    foreach ($item in $Backup.Items) {
+    foreach ($item in $RCloneItems) {
         $path =
             $ExecutionContext.InvokeCommand.ExpandString(
                 $item.Path
@@ -58,11 +58,11 @@ function Invoke-RCloneBackup (
 
         $localPath = ConvertTo-CrossPlatformPathFormat $path
 
-        $origination = "$($Backup.Source):`"$localPath`""
+        $origination = "$($RCloneParameters.Source):`"$localPath`""
 
         $remotePathPrefix = ConvertTo-CrossPlatformPathFormat `
             $ExecutionContext.InvokeCommand.ExpandString(
-                $Backup.RemotePath
+                $RCloneParameters.RemotePath
             )
 
         $remotePathPostfix = ConvertTo-ExpandedDirectoryPathFormat `
@@ -72,7 +72,7 @@ function Invoke-RCloneBackup (
 
         $remotePath = "$remotePathPrefix/$(Edit-TrimForwardSlashes $remotePathPostfix)"
 
-        $destination = "$($Backup.Remote):`"$remotePath`""
+        $destination = "$($RCloneParameters.Remote):`"$remotePath`""
 
         if ($Restore.IsPresent) {
             $p = $origination

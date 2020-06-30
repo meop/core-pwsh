@@ -35,14 +35,14 @@ $host.PrivateData.ErrorForegroundColor = 'DarkRed'
 $host.PrivateData.ErrorBackgroundColor = 'White'
 
 
-Invoke-SafeSetItem 'env:OS_ID' (($IsWindows) ? 'windows' : (($IsMacOS) ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]))
+Invoke-SafeSetItem 'env:OSID' ($IsWindows ? 'windows' : $IsMacOS ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]).ToLowerInvariant()
 
 function charHost {
-    if ($env:OS_ID -eq 'windows') { [char]0xf17a }
-    elseif ($env:OS_ID -eq 'macos') { [char]0xf179 }
-    elseif ($env:OS_ID -eq 'arch') { [char]0xf303 }
-    elseif ($env:OS_ID -eq 'debian') { [char]0xf306 }
-    elseif ($env:OS_ID -eq 'raspios') { [char]0xf315 }
+    if ($env:OSID -eq 'windows') { [char]0xf17a }
+    elseif ($env:OSID -eq 'macos') { [char]0xf179 }
+    elseif ($env:OSID -eq 'arch') { [char]0xf303 }
+    elseif ($env:OSID -eq 'debian') { [char]0xf306 }
+    elseif ($env:OSID -eq 'raspbian') { [char]0xf315 }
     else { [char]0xf17c }
 }
 function charUser {
@@ -50,9 +50,9 @@ function charUser {
         $env:USERNAME -eq 'admin'
     ) { [char]0xf0f0 }
     elseif ($env:USERNAME -eq 'marshall' -or
-        $env:USERNAME -eq 'meop' -or
-        $env:USERNAME -eq 'meoporter' -or
-        $env:USERNAME -eq 'mporter'
+            $env:USERNAME -eq 'meop' -or
+            $env:USERNAME -eq 'meoporter' -or
+            $env:USERNAME -eq 'mporter'
     ) { [char]0xf007 }
     else { [char]0xf21b }
 }

@@ -54,9 +54,7 @@ function Invoke-GitRebaseWithRetries (
                     -Config $Config
 
                 $ans = Read-Host
-                $runComplete =
-                    if ($ans -like '*n*') { $true }
-                    else { $false }
+                $runComplete = ($ans -like '*n*')
 
                 break
             }
@@ -86,10 +84,11 @@ function Invoke-GitRebaseWithRetries (
                     -Config $Config
 
                 $ans = Read-Host
-                $rebaseOption =
-                    if ($ans -like '*s*') { 'skip' }
-                    elseif ($ans -like '*a*') { 'abort' }
-                    else { 'continue' }
+                $rebaseOption = ($ans -like '*s*') `
+                    ? 'skip' `
+                    : ($ans -like '*a*') `
+                    ? 'abort' `
+                    : 'continue'
 
                 break
             }

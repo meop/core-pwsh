@@ -56,9 +56,7 @@ Invoke-SafeSetItem 'env:HOSTNAME' (hostname).ToLowerInvariant()
 
 Invoke-SafeSetItem 'env:USERNAME' ($IsWindows ? $env:USERNAME : $env:USER).ToLowerInvariant()
 
-Invoke-SafeSetItem 'env:OS_ID' ($IsWindows ? 'windows' : $IsMacOS ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]).ToLowerInvariant()
-
-Invoke-SafeSetItem 'env:OS_KERNEL' ($IsWindows ? 'winnt' : $IsMacOS ? 'darwin' : 'linux').ToLowerInvariant()
+Invoke-SafeSetItem 'env:OSID' ($IsWindows ? 'windows' : $IsMacOS ? 'macos' : (Get-Content '/etc/os-release' | Select-String '^ID=').Line.Split('=')[1]).ToLowerInvariant()
 
 Invoke-SafeAppendToModulePath "$PSScriptRoot/Modules"
 
