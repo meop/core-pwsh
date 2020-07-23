@@ -66,7 +66,7 @@ if (Test-Path $d) {
     ForEach-Object { . $_.FullName }
 }
 
-$d = "$PSScriptRoot/Libraries"
+$d = "$PSScriptRoot/libraries"
 if (Test-Path $d) {
     Get-ChildItem -Path $d -Filter '*.ps1' |
     ForEach-Object { . $_.FullName }
