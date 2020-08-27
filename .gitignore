@@ -1,13 +1,16 @@
-# ignore so people can create their own
-**/config.yml
+# VS Code
+.devcontainer/
+.vscode/
 
-# initializer routines
+# Ignore to allow customization
+**/config.yml
 **/Initializers/*
 
-# comes with PowerShell
+# Comes with PowerShell
 **/Modules/*
+**/Scripts/*
 
-# except for bundled modules
+# Modules contained in this repo
 !**/Modules/Array
 !**/Modules/Command
 !**/Modules/Console
@@ -17,6 +20,3 @@
 !**/Modules/Itemize
 !**/Modules/Platform
 !**/Modules/Rest
-
-# comes with PowerShell
-**/Scripts/*
