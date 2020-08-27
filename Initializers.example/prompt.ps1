@@ -40,9 +40,13 @@ Invoke-SafeSetItem 'env:OSID' ($IsWindows ? 'windows' : $IsMacOS ? 'macos' : (Ge
 function charHost {
     if ($env:OSID -eq 'windows') { [char]0xf17a }
     elseif ($env:OSID -eq 'macos') { [char]0xf179 }
+    elseif ($env:OSID -eq 'alpine') { [char]0xf300 }
     elseif ($env:OSID -eq 'arch') { [char]0xf303 }
+    elseif ($env:OSID -eq 'manjaro') { [char]0xf312 }
     elseif ($env:OSID -eq 'debian') { [char]0xf306 }
     elseif ($env:OSID -eq 'raspbian') { [char]0xf315 }
+    elseif ($env:OSID -eq 'ubuntu') { [char]0xf31b }
+    elseif ($env:OSID -eq 'linuxmint') { [char]0xf30e }
     else { [char]0xf17c }
 }
 function charUser {
