@@ -5,4 +5,4 @@
 
 # note mporter: can be problematic
 Invoke-SafeSetItem 'env:DISPLAY' 'localhost:0'
-Invoke-SafeSetItem 'env:SSH_ASKPASS' "pwsh -NoProfile `"$($env:HOME)\Documents\Powershell\bin\echopass.ps1`""
+Invoke-SafeSetItem 'env:SSH_ASKPASS' "pwsh -NoProfile `"$($env:HOME)\Documents\Powershell\Bin\echopass.ps1`""
