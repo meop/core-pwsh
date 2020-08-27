@@ -47,6 +47,9 @@ function charHost {
     elseif ($env:OSID -eq 'raspbian') { [char]0xf315 }
     elseif ($env:OSID -eq 'ubuntu') { [char]0xf31b }
     elseif ($env:OSID -eq 'linuxmint') { [char]0xf30e }
+    elseif ($env:OSID -eq 'rhel') { [char]0xf316 }
+    elseif ($env:OSID -eq 'centos') { [char]0xf304 }
+    elseif ($env:OSID -eq 'fedora') { [char]0xf30a }
     else { [char]0xf17c }
 }
 function charUser {
